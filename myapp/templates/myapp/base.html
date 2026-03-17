@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}RevSchool Internal{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f4f6f9;
+            color: #1a1a2e;
+        }
+
+        /* ── Navbar ── */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 56px;
+            background: #1a1a2e;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 300;
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .navbar-brand {
+            color: #fff;
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .navbar-username {
+            color: rgba(255,255,255,0.75);
+            font-size: 14px;
+        }
+
+        /* ── Hamburger button ── */
+        .hamburger-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            transition: background 0.2s;
+            padding: 0;
+        }
+
+        .hamburger-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .hamburger-btn span {
+            display: block;
+            width: 18px;
+            height: 2px;
+            background: #fff;
+            border-radius: 2px;
+            transition: transform 0.3s, opacity 0.3s, width 0.3s;
+            transform-origin: center;
+        }
+
+        /* Animate to X when open */
+        .hamburger-btn.open span:nth-child(1) {
+            transform: translateY(7px) rotate(45deg);
+        }
+
+        .hamburger-btn.open span:nth-child(2) {
+            opacity: 0;
+            width: 0;
+        }
+
+        .hamburger-btn.open span:nth-child(3) {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            position: fixed;
+            top: 56px;
+            left: 0;
+            width: 240px;
+            height: calc(100vh - 56px);
+            background: #1a1a2e;
+            z-index: 200;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            padding: 16px 0;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.2);
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar-section-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.35);
+            padding: 16px 20px 8px;
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: color 0.2s, background 0.2s, border-color 0.2s;
+        }
+
+        .sidebar-link:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .sidebar-link.active {
+            color: #fff;
+            border-left-color: #4f8ef7;
+            background: rgba(79,142,247,0.1);
+        }
+
+        .sidebar-link svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+            flex-shrink: 0;
+            opacity: 0.8;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+            margin: 12px 20px;
+        }
+
+        /* ── Sidebar overlay (closes sidebar on click outside) ── */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            top: 56px;
+            z-index: 150;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .sidebar-overlay.open {
+            display: block;
+        }
+
+        /* ── Logout button ── */
+        .logout-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1.5px solid rgba(255,255,255,0.3);
+            color: #fff;
+            padding: 5px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* ── Profile button ── */
+        .profile-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .profile-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.6);
+        }
+
+        .profile-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: #fff;
+        }
+
+        /* ── Auth Modal ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 400;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: #fff;
+            border-radius: 12px;
+            padding: 32px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .modal h2 {
+            font-size: 20px;
+            margin-bottom: 6px;
+            color: #1a1a2e;
+        }
+
+        .modal-tabs {
+            display: flex;
+            margin-bottom: 24px;
+            border-bottom: 2px solid #e8e8e8;
+            margin-top: 16px;
+        }
+
+        .modal-tab {
+            padding: 8px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #888;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+        .modal-tab.active {
+            color: #1a1a2e;
+            border-bottom-color: #1a1a2e;
+        }
+
+        .modal-form {
+            display: none;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .modal-form.active {
+            display: flex;
+        }
+
+        .modal-form input {
+            padding: 10px 14px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .modal-form input:focus {
+            border-color: #1a1a2e;
+        }
+
+        .modal-form button {
+            padding: 11px;
+            background: #1a1a2e;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .modal-form button:hover {
+            background: #2e2e4e;
+        }
+
+        .error-message {
+            background: #fff0f0;
+            border: 1px solid #ffcccc;
+            color: #cc0000;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 14px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #aaa;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #333;
+        }
+
+        /* ── Page content ── */
+        .page-content {
+            padding-top: 72px;
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+    </style>
+</head>
+<body data-has-messages="{% if messages %}true{% else %}false{% endif %}">
+
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="navbar-left">
+        <button class="hamburger-btn" id="hamburgerBtn" onclick="toggleSidebar()" title="Navigation menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <span class="navbar-brand">RevSchool Internal</span>
+    </div>
+    <div class="navbar-right">
+        {% if user.is_authenticated %}
+            <span class="navbar-username">{{ user.first_name|default:user.email }}</span>
+            <form method="post" action="{% url 'logout' %}" style="margin:0">
+                {% csrf_token %}
+                <button type="submit" class="logout-btn">Log out</button>
+            </form>
+        {% else %}
+            <button class="profile-btn" onclick="openModal()" title="Login / Create Account" style="display:flex; align-items:center; width:auto; border-radius:8px; padding:0 12px; gap:8px;">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="width:18px;height:18px;fill:#fff;flex-shrink:0;">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                </svg>
+                <span style="color:#fff; font-size:13px; font-weight:500;">Log in</span>
+            </button>
+        {% endif %}
+    </div>
+</nav>
+
+<!-- Sidebar overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+    <span class="sidebar-section-label">Pages</span>
+
+    <a href="{% url 'home' %}" class="sidebar-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        Home
+    </a>
+
+    <a href="{% url 'schedule_template' %}" class="sidebar-link {% if request.resolver_match.url_name == 'schedule_template' %}active{% endif %}">
+        <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+        Schedule Template
+    </a>
+
+    <div class="sidebar-divider"></div>
+    <span class="sidebar-section-label">Account</span>
+
+    {% if user.is_authenticated %}
+        <span class="sidebar-link" style="cursor:default; opacity:0.9;">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            {{ user.get_full_name|default:user.email }}
+        </span>
+        <form method="post" action="{% url 'logout' %}" style="margin:0">
+            {% csrf_token %}
+            <button type="submit" class="sidebar-link" style="width:100%;background:none;border:none;cursor:pointer;text-align:left;">
+                <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+                Log out
+            </button>
+        </form>
+    {% else %}
+        <a href="#" class="sidebar-link" onclick="closeSidebar(); openModal();">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            Log in / Create account
+        </a>
+    {% endif %}
+</nav>
+
+<!-- Auth Modal -->
+<div class="modal-overlay" id="authModal" onclick="handleOverlayClick(event)">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+        <h2>Welcome back</h2>
+        <div class="modal-tabs">
+            <div class="modal-tab active" onclick="switchTab('login')">Log in</div>
+            <div class="modal-tab" onclick="switchTab('register')">Create account</div>
+        </div>
+
+        <!-- Login form -->
+        <form class="modal-form active" id="loginForm" method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            {% for message in messages %}
+                <div class="error-message">{{ message }}</div>
+            {% endfor %}
+            <input type="email" name="email" placeholder="Email address" required />
+            <input type="password" name="password" placeholder="Password" required />
+            <button type="submit">Log in</button>
+        </form>
+
+        <!-- Register form -->
+        <form class="modal-form" id="registerForm" method="post" action="{% url 'register' %}">
+            {% csrf_token %}
+            <input type="text" name="name" placeholder="Full name" required />
+            <input type="email" name="email" placeholder="Email address" required />
+            <input type="password" name="password" placeholder="Password" required />
+            <button type="submit">Create account</button>
+        </form>
+    </div>
+</div>
+
+<div class="page-content">
+    {% block content %}{% endblock %}
+</div>
+
+<script>
+    // ── Sidebar ──
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        const btn = document.getElementById('hamburgerBtn');
+        const isOpen = sidebar.classList.contains('open');
+        sidebar.classList.toggle('open', !isOpen);
+        overlay.classList.toggle('open', !isOpen);
+        btn.classList.toggle('open', !isOpen);
+    }
+
+    function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('open');
+        document.getElementById('hamburgerBtn').classList.remove('open');
+    }
+
+    // ── Auth modal ──
+    if (document.body.dataset.hasMessages === 'true') {
+        openModal();
+    }
+
+    function openModal() {
+        document.getElementById('authModal').classList.add('open');
+    }
+
+    function closeModal() {
+        document.getElementById('authModal').classList.remove('open');
+    }
+
+    function handleOverlayClick(e) {
+        if (e.target === document.getElementById('authModal')) closeModal();
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.modal-form').forEach(f => f.classList.remove('active'));
+        document.querySelector(`.modal-tab:nth-child(${tab === 'login' ? 1 : 2})`).classList.add('active');
+        document.getElementById(tab === 'login' ? 'loginForm' : 'registerForm').classList.add('active');
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closeModal();
+            closeSidebar();
+        }
+    });
+</script>
+
+</body>
+</html>

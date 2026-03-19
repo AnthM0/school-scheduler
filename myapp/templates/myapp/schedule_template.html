@@ -3,6 +3,346 @@
 {% block title %}RevSchool Internal - Schedule Template{% endblock %}
 
 {% block content %}
-    <h1>RevSchool Internal — Schedule Template</h1>
-    <a href="{% url 'home' %}">← Back to RevSchool Internal</a>
+<style>
+    .group-selector-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 28px;
+    }
+
+    .group-selector-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .group-select {
+        padding: 9px 36px 9px 14px;
+        border: 1.5px solid #dde2ec;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #1a1a2e;
+        background: #fff;
+        cursor: pointer;
+        outline: none;
+        min-width: 220px;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%23555'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        transition: border-color 0.2s;
+    }
+
+    .group-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 400;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .group-modal-overlay.open {
+        display: flex;
+    }
+
+    .group-modal {
+        background: #fff;
+        border-radius: 12px;
+        padding: 32px;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        position: relative;
+    }
+
+    .group-modal h2 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 20px;
+    }
+
+    .group-modal-close {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #aaa;
+        line-height: 1;
+    }
+
+    .group-modal-close:hover { color: #333; }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modal-input {
+        padding: 10px 14px;
+        border: 1.5px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+        width: 100%;
+        background: #fff;
+    }
+
+    .modal-input:focus {
+        border-color: #1a1a2e;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 11px;
+        background: #1a1a2e;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        margin-top: 4px;
+    }
+
+    .submit-btn:hover {
+        background: #2e2e4e;
+    }
+
+    .form-error {
+        background: #fff0f0;
+        border: 1px solid #ffcccc;
+        color: #cc0000;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+
+    .group-select:focus {
+        border-color: #1a1a2e;
+    }
+
+    .group-select option.add-new-option {
+        color: #4f8ef7;
+        font-weight: 600;
+    }
+
+    .schedule-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding-bottom: 40px;
+    }
+
+    .schedule-title {
+        text-align: center;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #1a1a2e;
+        margin-bottom: 28px;
+        text-transform: uppercase;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .schedule-title span {
+        display: inline-block;
+        border-bottom: 3px solid #4f8ef7;
+        padding-bottom: 6px;
+    }
+
+    .schedule-grid {
+        display: grid;
+        grid-template-columns: 64px repeat(5, 1fr);
+        border: 1px solid #dde2ec;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    }
+
+    .header-spacer {
+        background: #1a1a2e;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .day-header {
+        background: #1a1a2e;
+        color: #fff;
+        text-align: center;
+        padding: 14px 8px;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        border-left: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .time-label {
+        background: #f8f9fc;
+        border-bottom: 1px solid #eaecf2;
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        padding: 6px 8px 0 0;
+        font-size: 11px;
+        font-weight: 600;
+        color: #8892a4;
+        letter-spacing: 0.3px;
+        min-height: 48px;
+    }
+
+    .time-label.half-hour {
+        color: #bbc3d0;
+        font-weight: 400;
+        border-bottom: 1px dashed #eaecf2;
+    }
+
+    .schedule-cell {
+        border-left: 1px solid #eaecf2;
+        border-bottom: 1px solid #eaecf2;
+        min-height: 48px;
+        background: #fff;
+        transition: background 0.15s;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .schedule-cell:hover {
+        background: #f0f5ff;
+    }
+
+    .schedule-cell.half {
+        border-bottom: 1px dashed #eaecf2;
+        background: #fafbfd;
+    }
+
+    .schedule-cell.half:hover {
+        background: #f0f5ff;
+    }
+</style>
+
+<div class="schedule-wrapper">
+    <h1 class="schedule-title"><span>Schedule Template Builder</span></h1>
+    <div class="group-selector-bar">
+        <span class="group-selector-label">Group</span>
+        <select class="group-select" id="groupSelect">
+            <option value="">— Select a group —</option>
+            {% for group in groups %}
+                <option value="{{ group.id }}" {% if selected_group_id == group.id|stringformat:"s" %}selected{% endif %}>
+                    {{ group }}
+                </option>
+            {% endfor %}
+            <option value="__add__" class="add-new-option">+ Add a new group</option>
+        </select>
+    </div>
+    <div class="schedule-grid">
+        <div class="header-spacer"></div>
+        <div class="day-header">Monday</div>
+        <div class="day-header">Tuesday</div>
+        <div class="day-header">Wednesday</div>
+        <div class="day-header">Thursday</div>
+        <div class="day-header">Friday</div>
+
+        {% for slot in time_slots %}
+            <div class="time-label {% if slot.is_half %}half-hour{% endif %}">
+                {% if not slot.is_half %}{{ slot.label }}{% endif %}
+            </div>
+            <div class="schedule-cell {% if slot.is_half %}half{% endif %}" data-day="monday" data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.is_half %}half{% endif %}" data-day="tuesday" data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.is_half %}half{% endif %}" data-day="wednesday" data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.is_half %}half{% endif %}" data-day="thursday" data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.is_half %}half{% endif %}" data-day="friday" data-time="{{ slot.value }}"></div>
+        {% endfor %}
+    </div>
+</div>
+<div class="group-modal-overlay" id="groupModal" data-has-errors="{% if messages %}true{% else %}false{% endif %}" onclick="handleGroupOverlayClick(event)">
+    <div class="group-modal">
+        <button class="group-modal-close" onclick="closeGroupModal()">&#x2715;</button>
+        <h2>Create New Group</h2>
+
+        {% for message in messages %}
+            <div class="form-error">{{ message }}</div>
+        {% endfor %}
+
+        <form method="post" action="{% url 'schedule_template' %}">
+            {% csrf_token %}
+            <input type="hidden" name="create_group" value="1">
+            <div class="form-group">
+                <label for="group_name">Group Name</label>
+                <input type="text" id="group_name" name="group_name" class="modal-input"
+                    placeholder="e.g. All Students, 9th Graders..." required />
+            </div>
+            <div class="form-group">
+                <label for="parent_group">Parent Group <span style="font-weight:400; text-transform:none;">(optional)</span></label>
+                <select id="parent_group" name="parent_group" class="modal-input">
+                    <option value="">— None —</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}">{{ group }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="submit-btn">Create Group</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('groupSelect').addEventListener('change', function() {
+        handleGroupSelect(this.value);
+    });
+
+    function handleGroupSelect(value) {
+        console.log('Selected value:', value);
+        if (value === '__add__') {
+            document.getElementById('groupSelect').value = '{{ selected_group_id }}';
+            openGroupModal();
+        } else {
+            window.location.href = '?group=' + value;
+        }
+    }
+
+    function openGroupModal() {
+        document.getElementById('groupModal').classList.add('open');
+    }
+
+    function closeGroupModal() {
+        document.getElementById('groupModal').classList.remove('open');
+    }
+
+    function handleGroupOverlayClick(e) {
+        if (e.target === document.getElementById('groupModal')) closeGroupModal();
+    }
+
+    if (document.getElementById('groupModal').dataset.hasErrors === 'true') {
+        openGroupModal();
+    }
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeGroupModal();
+    });
+</script>
+
 {% endblock %}

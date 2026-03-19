@@ -20,6 +20,7 @@ def schedule_template(request):
             'label': current.strftime('%I:%M %p').lstrip('0'),
             'value': current.strftime('%H:%M'),
             'is_half': current.minute == 30,
+            'show_label': current.minute % 30 == 0,
         })
         current += timedelta(minutes=30)
 
@@ -66,25 +67,24 @@ def schedule_template(request):
     })
 
 def get_classes_for_group(group):
-    """Collect classes from the group and all its parent groups."""
     classes_by_day = {day: [] for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']}
-    
-    # Walk up the parent chain collecting all groups
     groups_in_chain = []
     current = group
     while current is not None:
         groups_in_chain.append(current)
         current = current.parent
 
-    # Merge classes from all groups in the chain
     for g in groups_in_chain:
         for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']:
             for c in getattr(g, day).all():
                 classes_by_day[day].append({
+                    'id': c.id,
                     'name': c.name,
                     'start': c.start_time.strftime('%H:%M'),
                     'end': c.end_time.strftime('%H:%M'),
                     'group': g.name,
+                    'group_id': g.id,
+                    'day': day,
                 })
 
     return classes_by_day
@@ -138,6 +138,77 @@ def create_class(request):
         new_class = Class(name=name, start_time=start_time, end_time=end_time)
         new_class.save()
         getattr(group, day).add(new_class)
+
+        return redirect(f'/schedule-template/?group={group_id}')
+
+    return redirect('schedule_template')
+
+def edit_class(request, class_id):
+    try:
+        existing_class = Class.objects.get(id=class_id)
+    except Class.DoesNotExist:
+        return redirect('schedule_template')
+
+    group_id = request.POST.get('group_id', '') or request.GET.get('group', '')
+
+    if request.method == 'POST':
+        name = request.POST.get('class_name', '').strip()
+        day = request.POST.get('day', '')
+        start_time_str = request.POST.get('start_time', '')
+        end_time_str = request.POST.get('end_time', '')
+
+        errors = []
+
+        if not name:
+            errors.append('Class name is required.')
+        if day not in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']:
+            errors.append('A valid day is required.')
+
+        try:
+            start_time = datetime.strptime(start_time_str, '%H:%M').time()
+            end_time = datetime.strptime(end_time_str, '%H:%M').time()
+            if end_time <= start_time:
+                errors.append('End time must be after start time.')
+            if start_time < time_type(7, 30):
+                errors.append('Start time cannot be before 7:30 AM.')
+            if end_time > time_type(16, 30):
+                errors.append('End time cannot be after 4:30 PM.')
+        except ValueError:
+            errors.append('Invalid time format.')
+            start_time = end_time = None
+
+        try:
+            group = Group.objects.get(id=group_id)
+        except Group.DoesNotExist:
+            errors.append('Invalid group selected.')
+            group = None
+
+        if errors:
+            request.session['class_errors'] = errors
+            request.session['class_form_data'] = {
+                'class_name': name,
+                'day': day,
+                'start_time': start_time_str,
+                'end_time': end_time_str,
+                'group_id': group_id,
+                'edit_id': class_id,
+            }
+            return redirect(f'/schedule-template/?group={group_id}')
+
+        # Find which day the class is currently on and remove it
+        if group:
+            for d in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']:
+                getattr(group, d).remove(existing_class)
+
+        # Update the class fields
+        existing_class.name = name
+        existing_class.start_time = start_time
+        existing_class.end_time = end_time
+        existing_class.save()
+
+        # Re-add to the correct day
+        if group:
+            getattr(group, day).add(existing_class)
 
         return redirect(f'/schedule-template/?group={group_id}')
 

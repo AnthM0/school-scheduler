@@ -211,7 +211,12 @@
         font-weight: 600;
         color: #8892a4;
         letter-spacing: 0.3px;
+        min-height: 8px;
+    }
+
+    .time-label.show-label {
         min-height: 48px;
+        border-bottom: 1px solid #eaecf2;
     }
 
     .time-label.half-hour {
@@ -222,8 +227,8 @@
 
     .schedule-cell {
         border-left: 1px solid #eaecf2;
-        border-bottom: 1px solid #eaecf2;
-        min-height: 48px;
+        border-bottom: 1px solid transparent;
+        min-height: 8px;
         background: #fff;
         transition: background 0.15s;
         position: relative;
@@ -234,15 +239,14 @@
         background: #f0f5ff;
     }
 
+    .schedule-cell.show-label {
+        min-height: 48px;
+        border-bottom: 1px solid #eaecf2;
+    }
+
     .schedule-cell.half {
         border-bottom: 1px dashed #eaecf2;
-        background: #fafbfd;
     }
-
-    .schedule-cell.half:hover {
-        background: #f0f5ff;
-    }
-
     .add-class-btn {
         padding: 9px 18px;
         background: #4f8ef7;
@@ -379,14 +383,14 @@
 
         <!-- Time labels -->
         {% for slot in time_slots %}
-            <div class="time-label {% if slot.is_half %}half-hour{% endif %}">
-                {% if not slot.is_half %}{{ slot.label }}{% endif %}
+            <div class="time-label {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half-hour{% endif %}">
+                {% if slot.show_label %}{{ slot.label }}{% endif %}
             </div>
-            <div class="schedule-cell {% if slot.is_half %}half{% endif %}" data-day="monday" data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.is_half %}half{% endif %}" data-day="tuesday" data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.is_half %}half{% endif %}" data-day="wednesday" data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.is_half %}half{% endif %}" data-day="thursday" data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.is_half %}half{% endif %}" data-day="friday" data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="monday" data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="tuesday" data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="wednesday" data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="thursday" data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="friday" data-time="{{ slot.value }}"></div>
         {% endfor %}
     </div>
 </div>
@@ -427,15 +431,16 @@
      onclick="handleClassOverlayClick(event)">
     <div class="class-modal">
         <button class="class-modal-close" onclick="closeClassModal()">&#x2715;</button>
-        <h2>Add Class</h2>
+        <h2 id="classModalTitle">Add Class</h2>
 
         {% for error in class_errors %}
             <div class="form-error">{{ error }}</div>
         {% endfor %}
 
-        <form method="post" action="{% url 'create_class' %}">
+        <form method="post" id="classForm" action="{% url 'create_class' %}">
             {% csrf_token %}
-            <input type="hidden" name="group_id" value="{{ selected_group_id }}">
+            <input type="hidden" name="group_id" id="form_group_id" value="{{ selected_group_id }}">
+            <input type="hidden" name="edit_id" id="form_edit_id" value="">
 
             <div class="form-group">
                 <label for="class_name">Class Name</label>
@@ -472,26 +477,68 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="class_start">Start Time</label>
-                    <select id="class_start" name="start_time" class="modal-input">
-                        {% for slot in time_slots %}
-                            <option value="{{ slot.value }}"
-                                {% if class_form_data.start_time == slot.value %}selected{% endif %}>
-                                {{ slot.label }}
-                            </option>
-                        {% endfor %}
-                    </select>
+                    <label>Start Time</label>
+                    <div style="display:flex; gap:8px;">
+                        <select id="start_hour" class="modal-input" style="flex:1;">
+                            <option value="07">7 AM</option>
+                            <option value="08">8 AM</option>
+                            <option value="09">9 AM</option>
+                            <option value="10">10 AM</option>
+                            <option value="11">11 AM</option>
+                            <option value="12">12 PM</option>
+                            <option value="13">1 PM</option>
+                            <option value="14">2 PM</option>
+                            <option value="15">3 PM</option>
+                            <option value="16">4 PM</option>
+                        </select>
+                        <select id="start_minute" class="modal-input" style="flex:1;">
+                            <option value="00">:00</option>
+                            <option value="05">:05</option>
+                            <option value="10">:10</option>
+                            <option value="15">:15</option>
+                            <option value="20">:20</option>
+                            <option value="25">:25</option>
+                            <option value="30">:30</option>
+                            <option value="35">:35</option>
+                            <option value="40">:40</option>
+                            <option value="45">:45</option>
+                            <option value="50">:50</option>
+                            <option value="55">:55</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="class_start" name="start_time" />
                 </div>
                 <div class="form-group">
-                    <label for="class_end">End Time</label>
-                    <select id="class_end" name="end_time" class="modal-input">
-                        {% for slot in time_slots %}
-                            <option value="{{ slot.value }}"
-                                {% if class_form_data.end_time == slot.value %}selected{% endif %}>
-                                {{ slot.label }}
-                            </option>
-                        {% endfor %}
-                    </select>
+                    <label>End Time</label>
+                    <div style="display:flex; gap:8px;">
+                        <select id="end_hour" class="modal-input" style="flex:1;">
+                            <option value="07">7 AM</option>
+                            <option value="08">8 AM</option>
+                            <option value="09">9 AM</option>
+                            <option value="10">10 AM</option>
+                            <option value="11">11 AM</option>
+                            <option value="12">12 PM</option>
+                            <option value="13">1 PM</option>
+                            <option value="14">2 PM</option>
+                            <option value="15">3 PM</option>
+                            <option value="16">4 PM</option>
+                        </select>
+                        <select id="end_minute" class="modal-input" style="flex:1;">
+                            <option value="00">:00</option>
+                            <option value="05">:05</option>
+                            <option value="10">:10</option>
+                            <option value="15">:15</option>
+                            <option value="20">:20</option>
+                            <option value="25">:25</option>
+                            <option value="30">:30</option>
+                            <option value="35">:35</option>
+                            <option value="40">:40</option>
+                            <option value="45">:45</option>
+                            <option value="50">:50</option>
+                            <option value="55">:55</option>
+                        </select>
+                    </div>
+                    <input type="hidden" id="class_end" name="end_time" />
                 </div>
             </div>
 
@@ -527,15 +574,46 @@
         if (e.target === document.getElementById('groupModal')) closeGroupModal();
     }
 
-    function openClassModal() {
+    function openClassModal(editData) {
         const modal = document.getElementById('classModal');
-        modal.classList.add('open');
+        const form = document.getElementById('classForm');
+        const title = document.getElementById('classModalTitle');
 
-        // Default the group dropdown to the currently selected group
-        const currentGroup = '{{ selected_group_id }}';
-        if (currentGroup) {
-            document.getElementById('class_group').value = currentGroup;
+        if (editData) {
+            // Edit mode
+            title.textContent = 'Edit Class';
+            form.action = `/schedule-template/edit-class/${editData.id}/`;
+            document.getElementById('form_edit_id').value = editData.id;
+            document.getElementById('class_name').value = editData.name;
+            document.getElementById('class_group').value = editData.group_id;
+            document.getElementById('form_group_id').value = editData.group_id;
+            document.getElementById('class_day').value = editData.day;
+
+            // Set hour and minute dropdowns
+            const [startH, startM] = editData.start.split(':');
+            const [endH, endM] = editData.end.split(':');
+            document.getElementById('start_hour').value = startH;
+            document.getElementById('start_minute').value = startM;
+            document.getElementById('end_hour').value = endH;
+            document.getElementById('end_minute').value = endM;
+            updateTimeConstraints();
+        } else {
+            // Create mode
+            title.textContent = 'Add Class';
+            form.action = "{% url 'create_class' %}";
+            document.getElementById('form_edit_id').value = '';
+            document.getElementById('class_name').value = '';
+            document.getElementById('class_group').value = '{{ selected_group_id }}';
+            document.getElementById('form_group_id').value = '{{ selected_group_id }}';
+            document.getElementById('class_day').value = 'monday';
+            document.getElementById('start_hour').value = '07';
+            document.getElementById('start_minute').value = '30';
+            document.getElementById('end_hour').value = '08';
+            document.getElementById('end_minute').value = '30';
+            updateTimeConstraints();
         }
+
+        modal.classList.add('open');
     }
 
     function closeClassModal() {
@@ -546,7 +624,7 @@
         if (e.target === document.getElementById('classModal')) closeClassModal();
     }
 
-    document.querySelector('.add-class-btn').addEventListener('click', openClassModal);
+    document.querySelector('.add-class-btn').addEventListener('click', () => openClassModal(null));
 
     if (document.getElementById('groupModal').dataset.hasErrors === 'true') {
         openGroupModal();
@@ -565,10 +643,9 @@
     }
 
     const GRID_START = timeToMinutes('07:30');
-    const CELL_HEIGHT = 48; // px per 30-minute slot
+    const CELL_HEIGHT = 8; // px per 5-minute slot
 
     function renderClasses() {
-        // Remove any existing class blocks
         document.querySelectorAll('.class-block').forEach(b => b.remove());
 
         const grid = document.getElementById('scheduleGrid');
@@ -576,7 +653,7 @@
 
         const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
 
-        days.forEach((day, dayIndex) => {
+        days.forEach((day) => {
             const classes = classesByDay[day] || [];
 
             classes.forEach(cls => {
@@ -584,23 +661,11 @@
                 const endMins = timeToMinutes(cls.end);
                 const durationMins = endMins - startMins;
 
-                // Calculate position relative to grid start
-                const topOffset = ((startMins - GRID_START) / 30) * CELL_HEIGHT;
-                const height = (durationMins / 30) * CELL_HEIGHT;
+                const topOffset = ((startMins - GRID_START) / 5) * CELL_HEIGHT;
+                const height = (durationMins / 5) * CELL_HEIGHT;
 
-                // Find the correct cell to anchor to
-                // Grid has 1 time label + 5 day columns = 6 columns
-                // First data row starts after 6 header cells
-                // Each row: col 0 = time label, cols 1-5 = days
-                const cells = grid.querySelectorAll(
-                    `.schedule-cell[data-day="${day}"]`
-                );
-
-                if (cells.length === 0) return;
-
-                const firstCell = cells[0];
-                const cellRect = firstCell.getBoundingClientRect();
-                const gridRect = grid.getBoundingClientRect();
+                const firstCell = grid.querySelector(`.schedule-cell[data-day="${day}"]`);
+                if (!firstCell) return;
 
                 const block = document.createElement('div');
                 block.className = 'class-block';
@@ -610,18 +675,61 @@
                 block.style.width = firstCell.offsetWidth - 4 + 'px';
                 block.style.position = 'absolute';
 
-                const startLabel = cls.start.replace(/^0/, '');
-                const endLabel = cls.end.replace(/^0/, '');
-
                 block.innerHTML = `
                     <div class="class-block-name">${cls.name}</div>
                     <div class="class-block-time">${cls.start} – ${cls.end}${cls.group ? ' · ' + cls.group : ''}</div>
                 `;
 
+                // Click to edit
+                block.addEventListener('click', () => openClassModal(cls));
+
                 grid.appendChild(block);
             });
         });
     }
+
+    function updateTimeConstraints() {
+        const startHour = document.getElementById('start_hour');
+        const startMin = document.getElementById('start_minute');
+        const endHour = document.getElementById('end_hour');
+        const endMin = document.getElementById('end_minute');
+
+        // Enforce 7:30 AM minimum start
+        if (startHour.value === '07') {
+            Array.from(startMin.options).forEach(opt => {
+                opt.disabled = parseInt(opt.value) < 30;
+            });
+            if (parseInt(startMin.value) < 30) startMin.value = '30';
+        } else {
+            Array.from(startMin.options).forEach(opt => opt.disabled = false);
+        }
+
+        // Enforce 4:30 PM maximum end
+        if (endHour.value === '16') {
+            Array.from(endMin.options).forEach(opt => {
+                opt.disabled = parseInt(opt.value) > 30;
+            });
+            if (parseInt(endMin.value) > 30) endMin.value = '30';
+        } else {
+            Array.from(endMin.options).forEach(opt => opt.disabled = false);
+        }
+
+        // Update hidden inputs
+        document.getElementById('class_start').value = `${startHour.value}:${startMin.value}`;
+        document.getElementById('class_end').value = `${endHour.value}:${endMin.value}`;
+    }
+
+    // Attach listeners
+    ['start_hour', 'start_minute', 'end_hour', 'end_minute'].forEach(id => {
+        document.getElementById(id).addEventListener('change', updateTimeConstraints);
+    });
+
+    // Set initial default values (7:30 AM start, 8:30 AM end)
+    document.getElementById('start_hour').value = '07';
+    document.getElementById('start_minute').value = '30';
+    document.getElementById('end_hour').value = '08';
+    document.getElementById('end_minute').value = '30';
+    updateTimeConstraints();
 
     // Run on load and on window resize
     renderClasses();

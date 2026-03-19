@@ -1,0 +1,157 @@
+{# ============================================================ #}
+{#  CLASS MODAL                                                  #}
+{#  Used for both creating and editing classes.                  #}
+{#  The JS in schedule_script.html switches between modes.      #}
+{# ============================================================ #}
+<div class="class-modal-overlay" id="classModal"
+     data-has-errors="{% if class_errors %}true{% else %}false{% endif %}"
+     onclick="handleClassOverlayClick(event)">
+    <div class="class-modal">
+        <button class="class-modal-close" onclick="closeClassModal()">&#x2715;</button>
+        <h2 id="classModalTitle">Add Class</h2>
+
+        {# Display any validation errors returned from the view #}
+        {% for error in class_errors %}
+            <div class="form-error">{{ error }}</div>
+        {% endfor %}
+
+        <form method="post" id="classForm" action="{% url 'create_class' %}">
+            {% csrf_token %}
+
+            {# Hidden fields — populated by JS depending on create vs edit mode #}
+            <input type="hidden" name="group_id" id="form_group_id" value="{{ selected_group_id }}">
+            <input type="hidden" name="edit_id" id="form_edit_id" value="">
+
+            {# ── Class name ── #}
+            <div class="form-group">
+                <label for="class_name">Class Name</label>
+                <input type="text" id="class_name" name="class_name" class="modal-input"
+                    placeholder="e.g. Math, English..."
+                    value="{{ class_form_data.class_name|default:'' }}" required />
+            </div>
+
+            {# ── Subject ── #}
+            <div class="form-group">
+                <label for="class_subject">Subject</label>
+                <select id="class_subject" name="subject" class="modal-input">
+                    <option value="other">Other</option>
+                    <option value="math">Math</option>
+                    <option value="history">History</option>
+                    <option value="science">Science</option>
+                    <option value="english">English</option>
+                    <option value="language">Language</option>
+                </select>
+            </div>
+
+            {# ── Group assignment ── #}
+            <div class="form-group">
+                <label for="class_group">Group</label>
+                <select id="class_group" name="group_id" class="modal-input">
+                    <option value="">— Select a group —</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}"
+                            {% if class_form_data.group_id == group.id|stringformat:"s" or selected_group_id == group.id|stringformat:"s" %}
+                                selected
+                            {% endif %}>
+                            {{ group }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# ── Day of week ── #}
+            <div class="form-group">
+                <label for="class_day">Day</label>
+                <select id="class_day" name="day" class="modal-input">
+                    <option value="monday"    {% if class_form_data.day == 'monday'    %}selected{% endif %}>Monday</option>
+                    <option value="tuesday"   {% if class_form_data.day == 'tuesday'   %}selected{% endif %}>Tuesday</option>
+                    <option value="wednesday" {% if class_form_data.day == 'wednesday' %}selected{% endif %}>Wednesday</option>
+                    <option value="thursday"  {% if class_form_data.day == 'thursday'  %}selected{% endif %}>Thursday</option>
+                    <option value="friday"    {% if class_form_data.day == 'friday'    %}selected{% endif %}>Friday</option>
+                </select>
+            </div>
+
+            {# ── Start and end time (split into hour + minute dropdowns) ── #}
+            <div class="form-row">
+
+                <div class="form-group">
+                    <label>Start Time</label>
+                    <div style="display:flex; gap:8px;">
+                        <select id="start_hour" class="modal-input" style="flex:1;">
+                            <option value="07">7 AM</option>
+                            <option value="08">8 AM</option>
+                            <option value="09">9 AM</option>
+                            <option value="10">10 AM</option>
+                            <option value="11">11 AM</option>
+                            <option value="12">12 PM</option>
+                            <option value="13">1 PM</option>
+                            <option value="14">2 PM</option>
+                            <option value="15">3 PM</option>
+                            <option value="16">4 PM</option>
+                        </select>
+                        <select id="start_minute" class="modal-input" style="flex:1;">
+                            <option value="00">:00</option>
+                            <option value="05">:05</option>
+                            <option value="10">:10</option>
+                            <option value="15">:15</option>
+                            <option value="20">:20</option>
+                            <option value="25">:25</option>
+                            <option value="30">:30</option>
+                            <option value="35">:35</option>
+                            <option value="40">:40</option>
+                            <option value="45">:45</option>
+                            <option value="50">:50</option>
+                            <option value="55">:55</option>
+                        </select>
+                    </div>
+                    {# Hidden input combines hour + minute for form submission #}
+                    <input type="hidden" id="class_start" name="start_time" />
+                </div>
+
+                <div class="form-group">
+                    <label>End Time</label>
+                    <div style="display:flex; gap:8px;">
+                        <select id="end_hour" class="modal-input" style="flex:1;">
+                            <option value="07">7 AM</option>
+                            <option value="08">8 AM</option>
+                            <option value="09">9 AM</option>
+                            <option value="10">10 AM</option>
+                            <option value="11">11 AM</option>
+                            <option value="12">12 PM</option>
+                            <option value="13">1 PM</option>
+                            <option value="14">2 PM</option>
+                            <option value="15">3 PM</option>
+                            <option value="16">4 PM</option>
+                        </select>
+                        <select id="end_minute" class="modal-input" style="flex:1;">
+                            <option value="00">:00</option>
+                            <option value="05">:05</option>
+                            <option value="10">:10</option>
+                            <option value="15">:15</option>
+                            <option value="20">:20</option>
+                            <option value="25">:25</option>
+                            <option value="30">:30</option>
+                            <option value="35">:35</option>
+                            <option value="40">:40</option>
+                            <option value="45">:45</option>
+                            <option value="50">:50</option>
+                            <option value="55">:55</option>
+                        </select>
+                    </div>
+                    {# Hidden input combines hour + minute for form submission #}
+                    <input type="hidden" id="class_end" name="end_time" />
+                </div>
+
+            </div>
+
+            {# ── Save and delete buttons ── #}
+            <div style="display:flex; gap:10px; margin-top:4px;">
+                <button type="submit" class="submit-btn">Save Class</button>
+                <button type="button" id="deleteClassBtn" class="delete-btn" onclick="deleteClass()">
+                    Delete Class
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>

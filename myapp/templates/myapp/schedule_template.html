@@ -3,7 +3,37 @@
 {% block title %}RevSchool Internal - Schedule Template{% endblock %}
 
 {% block content %}
+
+{# ============================================================ #}
+{#  STYLES                                                       #}
+{# ============================================================ #}
 <style>
+
+    /* ── Page layout ── */
+    .schedule-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding-bottom: 40px;
+    }
+
+    .schedule-title {
+        text-align: center;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #1a1a2e;
+        margin-bottom: 28px;
+        text-transform: uppercase;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .schedule-title span {
+        display: inline-block;
+        border-bottom: 3px solid #4f8ef7;
+        padding-bottom: 6px;
+    }
+
+    /* ── Group selector bar ── */
     .group-selector-bar {
         display: flex;
         align-items: center;
@@ -37,85 +67,16 @@
         transition: border-color 0.2s;
     }
 
-    .group-modal-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 400;
-        align-items: center;
-        justify-content: center;
-    }
+    .group-select:focus { border-color: #1a1a2e; }
 
-    .group-modal-overlay.open {
-        display: flex;
-    }
-
-    .group-modal {
-        background: #fff;
-        border-radius: 12px;
-        padding: 32px;
-        width: 100%;
-        max-width: 420px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-        position: relative;
-    }
-
-    .group-modal h2 {
-        font-size: 18px;
-        font-weight: 700;
-        color: #1a1a2e;
-        margin-bottom: 20px;
-    }
-
-    .group-modal-close {
-        position: absolute;
-        top: 14px;
-        right: 16px;
-        background: none;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        color: #aaa;
-        line-height: 1;
-    }
-
-    .group-modal-close:hover { color: #333; }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-bottom: 16px;
-    }
-
-    .form-group label {
-        font-size: 12px;
+    .group-select option.add-new-option {
+        color: #4f8ef7;
         font-weight: 600;
-        color: #555;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
     }
 
-    .modal-input {
-        padding: 10px 14px;
-        border: 1.5px solid #ddd;
-        border-radius: 8px;
-        font-size: 14px;
-        outline: none;
-        transition: border-color 0.2s;
-        width: 100%;
-        background: #fff;
-    }
-
-    .modal-input:focus {
-        border-color: #1a1a2e;
-    }
-
-    .submit-btn {
-        width: 100%;
-        padding: 11px;
-        background: #1a1a2e;
+    .add-class-btn {
+        padding: 9px 18px;
+        background: #4f8ef7;
         color: #fff;
         border: none;
         border-radius: 8px;
@@ -123,55 +84,11 @@
         font-weight: 600;
         cursor: pointer;
         transition: background 0.2s;
-        margin-top: 4px;
     }
 
-    .submit-btn:hover {
-        background: #2e2e4e;
-    }
+    .add-class-btn:hover { background: #3a7be0; }
 
-    .form-error {
-        background: #fff0f0;
-        border: 1px solid #ffcccc;
-        color: #cc0000;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 13px;
-        margin-bottom: 16px;
-    }
-
-    .group-select:focus {
-        border-color: #1a1a2e;
-    }
-
-    .group-select option.add-new-option {
-        color: #4f8ef7;
-        font-weight: 600;
-    }
-
-    .schedule-wrapper {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding-bottom: 40px;
-    }
-
-    .schedule-title {
-        text-align: center;
-        font-size: 26px;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        color: #1a1a2e;
-        margin-bottom: 28px;
-        text-transform: uppercase;
-        font-family: 'Segoe UI', sans-serif;
-    }
-
-    .schedule-title span {
-        display: inline-block;
-        border-bottom: 3px solid #4f8ef7;
-        padding-bottom: 6px;
-    }
-
+    /* ── Schedule grid ── */
     .schedule-grid {
         display: grid;
         grid-template-columns: 64px repeat(5, 1fr);
@@ -180,6 +97,7 @@
         overflow: hidden;
         background: #fff;
         box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+        position: relative;
     }
 
     .header-spacer {
@@ -235,124 +153,24 @@
         cursor: pointer;
     }
 
-    .schedule-cell:hover {
-        background: #f0f5ff;
-    }
+    .schedule-cell:hover { background: #f0f5ff; }
 
     .schedule-cell.show-label {
         min-height: 48px;
         border-bottom: 1px solid #eaecf2;
     }
 
-    .schedule-cell.half {
-        border-bottom: 1px dashed #eaecf2;
-    }
-    .add-class-btn {
-        padding: 9px 18px;
-        background: #4f8ef7;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
+    .schedule-cell.half { border-bottom: 1px dashed #eaecf2; }
 
-    .add-class-btn:hover {
-        background: #3a7be0;
-    }
-
-    .class-modal-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.5);
-        z-index: 400;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .class-modal-overlay.open {
-        display: flex;
-    }
-
-    .class-modal {
-        background: #fff;
-        border-radius: 12px;
-        padding: 32px;
-        width: 100%;
-        max-width: 420px;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-        position: relative;
-    }
-
-    .class-modal h2 {
-        font-size: 18px;
-        font-weight: 700;
-        color: #1a1a2e;
-        margin-bottom: 20px;
-    }
-
-    .class-modal-close {
-        position: absolute;
-        top: 14px;
-        right: 16px;
-        background: none;
-        border: none;
-        font-size: 20px;
-        cursor: pointer;
-        color: #aaa;
-        line-height: 1;
-    }
-
-    .class-modal-close:hover { color: #333; }
-
-    .class-block.subject-math     { background: #4f8ef7; box-shadow: 0 2px 6px rgba(79,142,247,0.3); }
-    .class-block.subject-history  { background: #e8823a; box-shadow: 0 2px 6px rgba(232,130,58,0.3); }
-    .class-block.subject-science  { background: #3ab795; box-shadow: 0 2px 6px rgba(58,183,149,0.3); }
-    .class-block.subject-english  { background: #9b5fe0; box-shadow: 0 2px 6px rgba(155,95,224,0.3); }
-    .class-block.subject-language { background: #e05f7a; box-shadow: 0 2px 6px rgba(224,95,122,0.3); }
-    .class-block.subject-other    { background: #f0b429; box-shadow: 0 2px 6px rgba(240,180,41,0.3); }
-
-    .class-block.subject-math:hover     { background: #3a7be0; }
-    .class-block.subject-history:hover  { background: #d06e28; }
-    .class-block.subject-science:hover  { background: #2a9e7e; }
-    .class-block.subject-english:hover  { background: #8044cc; }
-    .class-block.subject-language:hover { background: #c44d68; }
-    .class-block.subject-other:hover    { background: #d49e1a; }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-    }
-
-    .schedule-grid {
-        position: relative;
-    }
-
-    .day-column {
-        position: relative;
-    }
-
+    /* ── Class blocks (rendered via JS onto the grid) ── */
     .class-block {
         position: absolute;
-        left: 2px;
-        right: 2px;
-        background: #4f8ef7;
         border-radius: 6px;
         padding: 4px 8px;
         overflow: hidden;
         z-index: 10;
         cursor: pointer;
-        box-shadow: 0 2px 6px rgba(79,142,247,0.3);
         transition: background 0.2s, box-shadow 0.2s;
-    }
-
-    .class-block:hover {
-        background: #3a7be0;
-        box-shadow: 0 4px 12px rgba(79,142,247,0.4);
     }
 
     .class-block-name {
@@ -369,16 +187,171 @@
         color: rgba(255,255,255,0.8);
         margin-top: 2px;
     }
+
+    /* ── Class block colors by subject ── */
+    .class-block.subject-math     { background: #4f8ef7; box-shadow: 0 2px 6px rgba(79,142,247,0.3); }
+    .class-block.subject-history  { background: #e8823a; box-shadow: 0 2px 6px rgba(232,130,58,0.3); }
+    .class-block.subject-science  { background: #3ab795; box-shadow: 0 2px 6px rgba(58,183,149,0.3); }
+    .class-block.subject-english  { background: #9b5fe0; box-shadow: 0 2px 6px rgba(155,95,224,0.3); }
+    .class-block.subject-language { background: #e05f7a; box-shadow: 0 2px 6px rgba(224,95,122,0.3); }
+    .class-block.subject-other    { background: #f0b429; box-shadow: 0 2px 6px rgba(240,180,41,0.3); }
+
+    .class-block.subject-math:hover     { background: #3a7be0; }
+    .class-block.subject-history:hover  { background: #d06e28; }
+    .class-block.subject-science:hover  { background: #2a9e7e; }
+    .class-block.subject-english:hover  { background: #8044cc; }
+    .class-block.subject-language:hover { background: #c44d68; }
+    .class-block.subject-other:hover    { background: #d49e1a; }
+
+    /* ── Shared modal styles (used by both group and class modals) ── */
+    .group-modal-overlay,
+    .class-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 400;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .group-modal-overlay.open,
+    .class-modal-overlay.open {
+        display: flex;
+    }
+
+    .group-modal,
+    .class-modal {
+        background: #fff;
+        border-radius: 12px;
+        padding: 32px;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        position: relative;
+    }
+
+    .group-modal h2,
+    .class-modal h2 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 20px;
+    }
+
+    .group-modal-close,
+    .class-modal-close {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #aaa;
+        line-height: 1;
+    }
+
+    .group-modal-close:hover,
+    .class-modal-close:hover { color: #333; }
+
+    /* ── Shared form styles (used inside both modals) ── */
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modal-input {
+        padding: 10px 14px;
+        border: 1.5px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+        width: 100%;
+        background: #fff;
+    }
+
+    .modal-input:focus { border-color: #1a1a2e; }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .form-error {
+        background: #fff0f0;
+        border: 1px solid #ffcccc;
+        color: #cc0000;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 11px;
+        background: #1a1a2e;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        margin-top: 4px;
+    }
+
+    .submit-btn:hover { background: #2e2e4e; }
+
+    .delete-btn {
+        width: 100%;
+        padding: 11px;
+        background: #fff;
+        color: #cc0000;
+        border: 1.5px solid #cc0000;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+
+    .delete-btn:hover {
+        background: #cc0000;
+        color: #fff;
+    }
+
 </style>
 
+{# ============================================================ #}
+{#  PAGE CONTENT                                                 #}
+{# ============================================================ #}
 <div class="schedule-wrapper">
+
+    {# ── Page title ── #}
     <h1 class="schedule-title"><span>Schedule Template Builder</span></h1>
+
+    {# ── Group selector + Add Class button ── #}
     <div class="group-selector-bar">
         <span class="group-selector-label">Group</span>
         <select class="group-select" id="groupSelect">
             <option value="">— Select a group —</option>
             {% for group in groups %}
-                <option value="{{ group.id }}" {% if selected_group_id == group.id|stringformat:"s" %}selected{% endif %}>
+                <option value="{{ group.id }}"
+                    {% if selected_group_id == group.id|stringformat:"s" %}selected{% endif %}>
                     {{ group }}
                 </option>
             {% endfor %}
@@ -387,6 +360,7 @@
         <button class="add-class-btn">+ Add Class</button>
     </div>
 
+    {# ── Subject colour legend ── #}
     <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-bottom:16px;">
         <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#555;">
             <span style="width:12px; height:12px; border-radius:3px; background:#4f8ef7; display:inline-block;"></span>Math
@@ -408,8 +382,10 @@
         </div>
     </div>
 
+    {# ── Schedule grid ── #}
     <div class="schedule-grid" id="scheduleGrid">
-        <!-- Headers -->
+
+        {# Day column headers #}
         <div class="header-spacer"></div>
         <div class="day-header">Monday</div>
         <div class="day-header">Tuesday</div>
@@ -417,380 +393,37 @@
         <div class="day-header">Thursday</div>
         <div class="day-header">Friday</div>
 
-        <!-- Time labels -->
+        {# Time slot rows — one row per 5-minute increment, label shown every 30 mins #}
         {% for slot in time_slots %}
             <div class="time-label {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half-hour{% endif %}">
                 {% if slot.show_label %}{{ slot.label }}{% endif %}
             </div>
-            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="monday" data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="tuesday" data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="monday"    data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="tuesday"   data-time="{{ slot.value }}"></div>
             <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="wednesday" data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="thursday" data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="friday" data-time="{{ slot.value }}"></div>
-        {% endfor %}
-    </div>
-</div>
-<div class="group-modal-overlay" id="groupModal" data-has-errors="{% if messages %}true{% else %}false{% endif %}" onclick="handleGroupOverlayClick(event)">
-    <div class="group-modal">
-        <button class="group-modal-close" onclick="closeGroupModal()">&#x2715;</button>
-        <h2>Create New Group</h2>
-
-        {% for message in messages %}
-            <div class="form-error">{{ message }}</div>
+            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="thursday"  data-time="{{ slot.value }}"></div>
+            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="friday"    data-time="{{ slot.value }}"></div>
         {% endfor %}
 
-        <form method="post" action="{% url 'schedule_template' %}">
-            {% csrf_token %}
-            <input type="hidden" name="create_group" value="1">
-            <div class="form-group">
-                <label for="group_name">Group Name</label>
-                <input type="text" id="group_name" name="group_name" class="modal-input"
-                    placeholder="e.g. All Students, 9th Graders..." required />
-            </div>
-            <div class="form-group">
-                <label for="parent_group">Parent Group <span style="font-weight:400; text-transform:none;">(optional)</span></label>
-                <select id="parent_group" name="parent_group" class="modal-input">
-                    <option value="">— None —</option>
-                    {% for group in groups %}
-                        <option value="{{ group.id }}">{{ group }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <button type="submit" class="submit-btn">Create Group</button>
-        </form>
     </div>
+
+    {# Hidden form used by the delete class function in JS #}
+    <form method="post" id="deleteClassForm" action="">
+        {% csrf_token %}
+        <input type="hidden" name="group_id" id="delete_group_id" value="">
+    </form>
+
 </div>
 
-<!-- Add Class Modal -->
-<div class="class-modal-overlay" id="classModal"
-     data-has-errors="{% if class_errors %}true{% else %}false{% endif %}"
-     onclick="handleClassOverlayClick(event)">
-    <div class="class-modal">
-        <button class="class-modal-close" onclick="closeClassModal()">&#x2715;</button>
-        <h2 id="classModalTitle">Add Class</h2>
+{# ============================================================ #}
+{#  MODALS                                                       #}
+{# ============================================================ #}
+{% include 'myapp/modal_group.html' %}
+{% include 'myapp/modal_class.html' %}
 
-        {% for error in class_errors %}
-            <div class="form-error">{{ error }}</div>
-        {% endfor %}
-
-        <form method="post" id="classForm" action="{% url 'create_class' %}">
-            {% csrf_token %}
-            <input type="hidden" name="group_id" id="form_group_id" value="{{ selected_group_id }}">
-            <input type="hidden" name="edit_id" id="form_edit_id" value="">
-
-            <div class="form-group">
-                <label for="class_name">Class Name</label>
-                <input type="text" id="class_name" name="class_name" class="modal-input"
-                    placeholder="e.g. Math, English..."
-                    value="{{ class_form_data.class_name|default:'' }}" required />
-            </div>
-
-            <div class="form-group">
-                <label for="class_subject">Subject</label>
-                <select id="class_subject" name="subject" class="modal-input">
-                    <option value="other">Other</option>
-                    <option value="math">Math</option>
-                    <option value="history">History</option>
-                    <option value="science">Science</option>
-                    <option value="english">English</option>
-                    <option value="language">Language</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="class_group">Group</label>
-                <select id="class_group" name="group_id" class="modal-input">
-                    <option value="">— Select a group —</option>
-                    {% for group in groups %}
-                        <option value="{{ group.id }}"
-                            {% if class_form_data.group_id == group.id|stringformat:"s" or selected_group_id == group.id|stringformat:"s" %}
-                                selected
-                            {% endif %}>
-                            {{ group }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="class_day">Day</label>
-                <select id="class_day" name="day" class="modal-input">
-                    <option value="monday" {% if class_form_data.day == 'monday' %}selected{% endif %}>Monday</option>
-                    <option value="tuesday" {% if class_form_data.day == 'tuesday' %}selected{% endif %}>Tuesday</option>
-                    <option value="wednesday" {% if class_form_data.day == 'wednesday' %}selected{% endif %}>Wednesday</option>
-                    <option value="thursday" {% if class_form_data.day == 'thursday' %}selected{% endif %}>Thursday</option>
-                    <option value="friday" {% if class_form_data.day == 'friday' %}selected{% endif %}>Friday</option>
-                </select>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Start Time</label>
-                    <div style="display:flex; gap:8px;">
-                        <select id="start_hour" class="modal-input" style="flex:1;">
-                            <option value="07">7 AM</option>
-                            <option value="08">8 AM</option>
-                            <option value="09">9 AM</option>
-                            <option value="10">10 AM</option>
-                            <option value="11">11 AM</option>
-                            <option value="12">12 PM</option>
-                            <option value="13">1 PM</option>
-                            <option value="14">2 PM</option>
-                            <option value="15">3 PM</option>
-                            <option value="16">4 PM</option>
-                        </select>
-                        <select id="start_minute" class="modal-input" style="flex:1;">
-                            <option value="00">:00</option>
-                            <option value="05">:05</option>
-                            <option value="10">:10</option>
-                            <option value="15">:15</option>
-                            <option value="20">:20</option>
-                            <option value="25">:25</option>
-                            <option value="30">:30</option>
-                            <option value="35">:35</option>
-                            <option value="40">:40</option>
-                            <option value="45">:45</option>
-                            <option value="50">:50</option>
-                            <option value="55">:55</option>
-                        </select>
-                    </div>
-                    <input type="hidden" id="class_start" name="start_time" />
-                </div>
-                <div class="form-group">
-                    <label>End Time</label>
-                    <div style="display:flex; gap:8px;">
-                        <select id="end_hour" class="modal-input" style="flex:1;">
-                            <option value="07">7 AM</option>
-                            <option value="08">8 AM</option>
-                            <option value="09">9 AM</option>
-                            <option value="10">10 AM</option>
-                            <option value="11">11 AM</option>
-                            <option value="12">12 PM</option>
-                            <option value="13">1 PM</option>
-                            <option value="14">2 PM</option>
-                            <option value="15">3 PM</option>
-                            <option value="16">4 PM</option>
-                        </select>
-                        <select id="end_minute" class="modal-input" style="flex:1;">
-                            <option value="00">:00</option>
-                            <option value="05">:05</option>
-                            <option value="10">:10</option>
-                            <option value="15">:15</option>
-                            <option value="20">:20</option>
-                            <option value="25">:25</option>
-                            <option value="30">:30</option>
-                            <option value="35">:35</option>
-                            <option value="40">:40</option>
-                            <option value="45">:45</option>
-                            <option value="50">:50</option>
-                            <option value="55">:55</option>
-                        </select>
-                    </div>
-                    <input type="hidden" id="class_end" name="end_time" />
-                </div>
-            </div>
-
-            <button type="submit" class="submit-btn">Save Class</button>
-        </form>
-    </div>
-</div>
-
-<script>
-    document.getElementById('groupSelect').addEventListener('change', function() {
-        handleGroupSelect(this.value);
-    });
-
-    function handleGroupSelect(value) {
-        console.log('Selected value:', value);
-        if (value === '__add__') {
-            document.getElementById('groupSelect').value = '{{ selected_group_id }}';
-            openGroupModal();
-        } else {
-            window.location.href = '?group=' + value;
-        }
-    }
-
-    function openGroupModal() {
-        document.getElementById('groupModal').classList.add('open');
-    }
-
-    function closeGroupModal() {
-        document.getElementById('groupModal').classList.remove('open');
-    }
-
-    function handleGroupOverlayClick(e) {
-        if (e.target === document.getElementById('groupModal')) closeGroupModal();
-    }
-
-    function openClassModal(editData) {
-        const modal = document.getElementById('classModal');
-        const form = document.getElementById('classForm');
-        const title = document.getElementById('classModalTitle');
-
-        if (editData) {
-            // Edit mode
-            title.textContent = 'Edit Class';
-            form.action = `/schedule-template/edit-class/${editData.id}/`;
-            document.getElementById('form_edit_id').value = editData.id;
-            document.getElementById('class_name').value = editData.name;
-            document.getElementById('class_subject').value = editData.subject || 'other';
-            document.getElementById('class_group').value = editData.group_id;
-            document.getElementById('form_group_id').value = editData.group_id;
-            document.getElementById('class_day').value = editData.day;
-
-            // Set hour and minute dropdowns
-            const [startH, startM] = editData.start.split(':');
-            const [endH, endM] = editData.end.split(':');
-            document.getElementById('start_hour').value = startH;
-            document.getElementById('start_minute').value = startM;
-            document.getElementById('end_hour').value = endH;
-            document.getElementById('end_minute').value = endM;
-            updateTimeConstraints();
-        } else {
-            // Create mode
-            title.textContent = 'Add Class';
-            form.action = "{% url 'create_class' %}";
-            document.getElementById('form_edit_id').value = '';
-            document.getElementById('class_name').value = '';
-            document.getElementById('class_subject').value = 'other';
-            document.getElementById('class_group').value = '{{ selected_group_id }}';
-            document.getElementById('form_group_id').value = '{{ selected_group_id }}';
-            document.getElementById('class_day').value = 'monday';
-            document.getElementById('start_hour').value = '07';
-            document.getElementById('start_minute').value = '30';
-            document.getElementById('end_hour').value = '08';
-            document.getElementById('end_minute').value = '30';
-            updateTimeConstraints();
-        }
-
-        modal.classList.add('open');
-    }
-
-    function closeClassModal() {
-        document.getElementById('classModal').classList.remove('open');
-    }
-
-    function handleClassOverlayClick(e) {
-        if (e.target === document.getElementById('classModal')) closeClassModal();
-    }
-
-    document.querySelector('.add-class-btn').addEventListener('click', () => openClassModal(null));
-
-    if (document.getElementById('groupModal').dataset.hasErrors === 'true') {
-        openGroupModal();
-    }
-
-    if (document.getElementById('classModal').dataset.hasErrors === 'true') {
-        openClassModal();
-    }
-
-    // Render class blocks on the grid
-    const classesByDay = JSON.parse('{{ classes_json|escapejs }}');
-
-    function timeToMinutes(timeStr) {
-        const [h, m] = timeStr.split(':').map(Number);
-        return h * 60 + m;
-    }
-
-    const GRID_START = timeToMinutes('07:30');
-    const CELL_HEIGHT = 8; // px per 5-minute slot
-
-    function renderClasses() {
-        document.querySelectorAll('.class-block').forEach(b => b.remove());
-
-        const grid = document.getElementById('scheduleGrid');
-        if (!grid) return;
-
-        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-
-        days.forEach((day) => {
-            const classes = classesByDay[day] || [];
-
-            classes.forEach(cls => {
-                const startMins = timeToMinutes(cls.start);
-                const endMins = timeToMinutes(cls.end);
-                const durationMins = endMins - startMins;
-
-                const topOffset = ((startMins - GRID_START) / 5) * CELL_HEIGHT;
-                const height = (durationMins / 5) * CELL_HEIGHT;
-
-                const firstCell = grid.querySelector(`.schedule-cell[data-day="${day}"]`);
-                if (!firstCell) return;
-
-                const block = document.createElement('div');
-                block.className = `class-block subject-${cls.subject || 'other'}`;
-                block.style.top = (firstCell.offsetTop + topOffset) + 'px';
-                block.style.height = height + 'px';
-                block.style.left = firstCell.offsetLeft + 2 + 'px';
-                block.style.width = firstCell.offsetWidth - 4 + 'px';
-                block.style.position = 'absolute';
-
-                block.innerHTML = `
-                    <div class="class-block-name">${cls.name}</div>
-                    <div class="class-block-time">${cls.start} – ${cls.end}${cls.group ? ' · ' + cls.group : ''}</div>
-                `;
-
-                // Click to edit
-                block.addEventListener('click', () => openClassModal(cls));
-
-                grid.appendChild(block);
-            });
-        });
-    }
-
-    function updateTimeConstraints() {
-        const startHour = document.getElementById('start_hour');
-        const startMin = document.getElementById('start_minute');
-        const endHour = document.getElementById('end_hour');
-        const endMin = document.getElementById('end_minute');
-
-        // Enforce 7:30 AM minimum start
-        if (startHour.value === '07') {
-            Array.from(startMin.options).forEach(opt => {
-                opt.disabled = parseInt(opt.value) < 30;
-            });
-            if (parseInt(startMin.value) < 30) startMin.value = '30';
-        } else {
-            Array.from(startMin.options).forEach(opt => opt.disabled = false);
-        }
-
-        // Enforce 4:30 PM maximum end
-        if (endHour.value === '16') {
-            Array.from(endMin.options).forEach(opt => {
-                opt.disabled = parseInt(opt.value) > 30;
-            });
-            if (parseInt(endMin.value) > 30) endMin.value = '30';
-        } else {
-            Array.from(endMin.options).forEach(opt => opt.disabled = false);
-        }
-
-        // Update hidden inputs
-        document.getElementById('class_start').value = `${startHour.value}:${startMin.value}`;
-        document.getElementById('class_end').value = `${endHour.value}:${endMin.value}`;
-    }
-
-    // Attach listeners
-    ['start_hour', 'start_minute', 'end_hour', 'end_minute'].forEach(id => {
-        document.getElementById(id).addEventListener('change', updateTimeConstraints);
-    });
-
-    // Set initial default values (7:30 AM start, 8:30 AM end)
-    document.getElementById('start_hour').value = '07';
-    document.getElementById('start_minute').value = '30';
-    document.getElementById('end_hour').value = '08';
-    document.getElementById('end_minute').value = '30';
-    updateTimeConstraints();
-
-    // Run on load and on window resize
-    renderClasses();
-    window.addEventListener('resize', renderClasses);
-
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-            closeGroupModal();
-            closeClassModal();
-        }
-    });
-</script>
+{# ============================================================ #}
+{#  JAVASCRIPT                                                   #}
+{# ============================================================ #}
+{% include 'myapp/schedule_script.html' %}
 
 {% endblock %}

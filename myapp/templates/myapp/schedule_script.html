@@ -1,0 +1,266 @@
+{# ============================================================ #}
+{#  SCHEDULE PAGE JAVASCRIPT                                     #}
+{#                                                               #}
+{#  Sections:                                                    #}
+{#    1. Group modal                                             #}
+{#    2. Class modal (create + edit)                             #}
+{#    3. Class rendering on the grid                             #}
+{#    4. Time constraint enforcement                             #}
+{#    5. Delete class                                            #}
+{#    6. Initialisation                                          #}
+{# ============================================================ #}
+<script>
+
+// ── 1. GROUP MODAL ──────────────────────────────────────────────
+
+document.getElementById('groupSelect').addEventListener('change', function() {
+    handleGroupSelect(this.value);
+});
+
+function handleGroupSelect(value) {
+    if (value === '__add__') {
+        // Reset dropdown to previous selection, then open modal
+        document.getElementById('groupSelect').value = '{{ selected_group_id }}';
+        openGroupModal();
+    } else {
+        // Navigate to the page with the selected group
+        window.location.href = '?group=' + value;
+    }
+}
+
+function openGroupModal() {
+    document.getElementById('groupModal').classList.add('open');
+}
+
+function closeGroupModal() {
+    document.getElementById('groupModal').classList.remove('open');
+}
+
+function handleGroupOverlayClick(e) {
+    // Close modal when clicking the dark backdrop (not the modal itself)
+    if (e.target === document.getElementById('groupModal')) closeGroupModal();
+}
+
+
+// ── 2. CLASS MODAL ──────────────────────────────────────────────
+
+function openClassModal(editData) {
+    const modal = document.getElementById('classModal');
+    const form  = document.getElementById('classForm');
+    const title = document.getElementById('classModalTitle');
+
+    if (editData) {
+        // ── Edit mode: pre-fill all fields with the existing class data ──
+        title.textContent = 'Edit Class';
+        form.action = `/schedule-template/edit-class/${editData.id}/`;
+        document.getElementById('form_edit_id').value      = editData.id;
+        document.getElementById('class_name').value        = editData.name;
+        document.getElementById('class_subject').value     = editData.subject || 'other';
+        document.getElementById('class_group').value       = editData.group_id;
+        document.getElementById('form_group_id').value     = editData.group_id;
+        document.getElementById('class_day').value         = editData.day;
+        document.getElementById('deleteClassBtn').style.display = 'block';
+
+        // Split stored HH:MM time back into separate hour and minute dropdowns
+        const [startH, startM] = editData.start.split(':');
+        const [endH,   endM  ] = editData.end.split(':');
+        document.getElementById('start_hour').value   = startH;
+        document.getElementById('start_minute').value = startM;
+        document.getElementById('end_hour').value     = endH;
+        document.getElementById('end_minute').value   = endM;
+        updateTimeConstraints();
+
+    } else {
+        // ── Create mode: reset all fields to defaults ──
+        title.textContent = 'Add Class';
+        form.action = "{% url 'create_class' %}";
+        document.getElementById('form_edit_id').value      = '';
+        document.getElementById('class_name').value        = '';
+        document.getElementById('class_subject').value     = 'other';
+        document.getElementById('class_group').value       = '{{ selected_group_id }}';
+        document.getElementById('form_group_id').value     = '{{ selected_group_id }}';
+        document.getElementById('class_day').value         = 'monday';
+        document.getElementById('start_hour').value        = '07';
+        document.getElementById('start_minute').value      = '30';
+        document.getElementById('end_hour').value          = '08';
+        document.getElementById('end_minute').value        = '30';
+        document.getElementById('deleteClassBtn').style.display = 'none';
+        updateTimeConstraints();
+    }
+
+    modal.classList.add('open');
+}
+
+function closeClassModal() {
+    document.getElementById('classModal').classList.remove('open');
+}
+
+function handleClassOverlayClick(e) {
+    // Close modal when clicking the dark backdrop (not the modal itself)
+    if (e.target === document.getElementById('classModal')) closeClassModal();
+}
+
+// Open class modal in create mode when the Add Class button is clicked
+document.querySelector('.add-class-btn').addEventListener('click', () => openClassModal(null));
+
+
+// ── 3. CLASS RENDERING ON THE GRID ─────────────────────────────
+
+// Parse the class data passed from the Django view as JSON
+const classesByDay = JSON.parse('{{ classes_json|escapejs }}');
+
+const GRID_START  = 7 * 60 + 30;  // 7:30 AM in minutes
+const CELL_HEIGHT = 8;             // px per 5-minute slot
+
+function timeToMinutes(timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+}
+
+function renderClasses() {
+    // Remove all existing class blocks before re-rendering
+    document.querySelectorAll('.class-block').forEach(b => b.remove());
+
+    const grid = document.getElementById('scheduleGrid');
+    if (!grid) return;
+
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+    days.forEach(day => {
+        const classes = classesByDay[day] || [];
+
+        classes.forEach(cls => {
+            const startMins    = timeToMinutes(cls.start);
+            const endMins      = timeToMinutes(cls.end);
+            const durationMins = endMins - startMins;
+
+            // Calculate pixel position and height based on 5-minute cell height
+            const topOffset = ((startMins - GRID_START) / 5) * CELL_HEIGHT;
+            const height    = (durationMins / 5) * CELL_HEIGHT;
+
+            // Anchor position to the first cell in this day column
+            const firstCell = grid.querySelector(`.schedule-cell[data-day="${day}"]`);
+            if (!firstCell) return;
+
+            const block = document.createElement('div');
+            block.className = `class-block subject-${cls.subject || 'other'}`;
+            block.style.top    = (firstCell.offsetTop + topOffset) + 'px';
+            block.style.height = height + 'px';
+            block.style.left   = firstCell.offsetLeft + 2 + 'px';
+            block.style.width  = firstCell.offsetWidth - 4 + 'px';
+
+            // Show class name and time range, plus originating group if inherited
+            block.innerHTML = `
+                <div class="class-block-name">${cls.name}</div>
+                <div class="class-block-time">
+                    ${cls.start} – ${cls.end}${cls.group ? ' · ' + cls.group : ''}
+                </div>
+            `;
+
+            // Clicking a block opens the modal in edit mode
+            block.addEventListener('click', () => openClassModal(cls));
+
+            grid.appendChild(block);
+        });
+    });
+}
+
+
+// ── 4. TIME CONSTRAINT ENFORCEMENT ─────────────────────────────
+
+function updateTimeConstraints() {
+    const startHour = document.getElementById('start_hour');
+    const startMin  = document.getElementById('start_minute');
+    const endHour   = document.getElementById('end_hour');
+    const endMin    = document.getElementById('end_minute');
+
+    // Disable minutes before :30 when hour is 7 (enforces 7:30 AM minimum)
+    if (startHour.value === '07') {
+        Array.from(startMin.options).forEach(opt => {
+            opt.disabled = parseInt(opt.value) < 30;
+        });
+        if (parseInt(startMin.value) < 30) startMin.value = '30';
+    } else {
+        Array.from(startMin.options).forEach(opt => opt.disabled = false);
+    }
+
+    // Disable minutes after :30 when hour is 16 (enforces 4:30 PM maximum)
+    if (endHour.value === '16') {
+        Array.from(endMin.options).forEach(opt => {
+            opt.disabled = parseInt(opt.value) > 30;
+        });
+        if (parseInt(endMin.value) > 30) endMin.value = '30';
+    } else {
+        Array.from(endMin.options).forEach(opt => opt.disabled = false);
+    }
+
+    // Combine hour + minute into the hidden inputs that the form actually submits
+    document.getElementById('class_start').value = `${startHour.value}:${startMin.value}`;
+    document.getElementById('class_end').value   = `${endHour.value}:${endMin.value}`;
+}
+
+// Re-run constraints whenever any time dropdown changes
+['start_hour', 'start_minute', 'end_hour', 'end_minute'].forEach(id => {
+    document.getElementById(id).addEventListener('change', updateTimeConstraints);
+});
+
+
+// ── 5. DELETE CLASS ─────────────────────────────────────────────
+
+function deleteClass() {
+    if (!confirm('Are you sure you want to delete this class?')) return;
+    const form    = document.getElementById('deleteClassForm');
+    const editId  = document.getElementById('form_edit_id').value;
+    const groupId = document.getElementById('form_group_id').value;
+    form.action = `/schedule-template/delete-class/${editId}/`;
+    document.getElementById('delete_group_id').value = groupId;
+    form.submit();
+}
+
+
+// ── 6. INITIALISATION ───────────────────────────────────────────
+
+// Re-open group modal if it had validation errors on last submit
+if (document.getElementById('groupModal').dataset.hasErrors === 'true') {
+    openGroupModal();
+}
+
+// Re-open class modal if it had validation errors on last submit
+if (document.getElementById('classModal').dataset.hasErrors === 'true') {
+    openClassModal();
+}
+
+// Set default time values and sync hidden inputs on page load
+document.getElementById('start_hour').value   = '07';
+document.getElementById('start_minute').value = '30';
+document.getElementById('end_hour').value     = '08';
+document.getElementById('end_minute').value   = '30';
+updateTimeConstraints();
+
+// Render classes on load and re-render on window resize
+renderClasses();
+window.addEventListener('resize', renderClasses);
+
+// Close any open modal on Escape key
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        closeGroupModal();
+        closeClassModal();
+    }
+});
+
+</script>
+```
+
+---
+
+Your `templates/myapp/` folder should now look like this:
+```
+templates/
+  myapp/
+    base.html
+    home.html
+    schedule_template.html   ← styles + page HTML only
+    modal_group.html         ← group modal
+    modal_class.html         ← class modal
+    schedule_script.html     ← all JavaScript

@@ -218,6 +218,17 @@ def edit_class(request, class_id):
 
     return redirect('schedule_template')
 
+def delete_class(request, class_id):
+    if request.method == 'POST':
+        group_id = request.POST.get('group_id', '')
+        try:
+            existing_class = Class.objects.get(id=class_id)
+            existing_class.delete()
+        except Class.DoesNotExist:
+            pass
+        return redirect(f'/schedule-template/?group={group_id}')
+    return redirect('schedule_template')
+
 def login_view(request):
     if request.method == 'POST':
         email = request.POST.get('email')

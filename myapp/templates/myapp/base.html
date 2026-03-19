@@ -350,7 +350,7 @@
         }
     </style>
 </head>
-<body data-has-messages="{% if messages %}true{% else %}false{% endif %}">
+<body data-has-auth-errors="{% if auth_error %}true{% else %}false{% endif %}">
 
 <!-- Navbar -->
 <nav class="navbar">
@@ -433,9 +433,9 @@
         <!-- Login form -->
         <form class="modal-form active" id="loginForm" method="post" action="{% url 'login' %}">
             {% csrf_token %}
-            {% for message in messages %}
-                <div class="error-message">{{ message }}</div>
-            {% endfor %}
+            {% if auth_error %}
+                <div class="error-message">{{ auth_error }}</div>
+            {% endif %}
             <input type="email" name="email" placeholder="Email address" required />
             <input type="password" name="password" placeholder="Password" required />
             <button type="submit">Log in</button>
@@ -475,7 +475,7 @@
     }
 
     // ── Auth modal ──
-    if (document.body.dataset.hasMessages === 'true') {
+    if (document.body.dataset.hasAuthErrors === 'true') {
         openModal();
     }
 

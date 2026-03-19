@@ -55,9 +55,9 @@ def login_view(request):
                 login(request, user)
                 return redirect('home')
             else:
-                messages.error(request, 'Invalid email or password.')
+                request.session['auth_error'] = 'Invalid email or password.'
         except User.DoesNotExist:
-            messages.error(request, 'No account found with that email.')
+            request.session['auth_error'] = 'No account found with that email.'
     return redirect('home')
 
 def register_view(request):
@@ -66,7 +66,7 @@ def register_view(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         if User.objects.filter(email=email).exists():
-            messages.error(request, 'An account with that email already exists.')
+            request.session['auth_error'] = 'An account with that email already exists.'
         else:
             username = email
             user = User.objects.create_user(username=username, email=email, password=password)

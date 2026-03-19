@@ -615,7 +615,7 @@
 
                 block.innerHTML = `
                     <div class="class-block-name">${cls.name}</div>
-                    <div class="class-block-time">${startLabel} – ${endLabel}</div>
+                    <div class="class-block-time">${cls.start} – ${cls.end}${cls.group ? ' · ' + cls.group : ''}</div>
                 `;
 
                 grid.appendChild(block);

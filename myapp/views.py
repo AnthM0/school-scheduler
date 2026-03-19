@@ -52,15 +52,7 @@ def schedule_template(request):
 
     classes_json = {}
     if selected_group:
-        for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']:
-            classes_json[day] = [
-                {
-                    'name': c.name,
-                    'start': c.start_time.strftime('%H:%M'),
-                    'end': c.end_time.strftime('%H:%M'),
-                }
-                for c in getattr(selected_group, day).all()
-            ]
+        classes_json = get_classes_for_group(selected_group)
 
     return render(request, 'myapp/schedule_template.html', {
         'time_slots': slots,
@@ -73,6 +65,29 @@ def schedule_template(request):
         'classes_json': json.dumps(classes_json),
     })
 
+def get_classes_for_group(group):
+    """Collect classes from the group and all its parent groups."""
+    classes_by_day = {day: [] for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']}
+    
+    # Walk up the parent chain collecting all groups
+    groups_in_chain = []
+    current = group
+    while current is not None:
+        groups_in_chain.append(current)
+        current = current.parent
+
+    # Merge classes from all groups in the chain
+    for g in groups_in_chain:
+        for day in ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']:
+            for c in getattr(g, day).all():
+                classes_by_day[day].append({
+                    'name': c.name,
+                    'start': c.start_time.strftime('%H:%M'),
+                    'end': c.end_time.strftime('%H:%M'),
+                    'group': g.name,
+                })
+
+    return classes_by_day
 
 def create_class(request):
     if request.method == 'POST':

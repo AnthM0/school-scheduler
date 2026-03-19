@@ -242,6 +242,115 @@
     .schedule-cell.half:hover {
         background: #f0f5ff;
     }
+
+    .add-class-btn {
+        padding: 9px 18px;
+        background: #4f8ef7;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .add-class-btn:hover {
+        background: #3a7be0;
+    }
+
+    .class-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 400;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .class-modal-overlay.open {
+        display: flex;
+    }
+
+    .class-modal {
+        background: #fff;
+        border-radius: 12px;
+        padding: 32px;
+        width: 100%;
+        max-width: 420px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        position: relative;
+    }
+
+    .class-modal h2 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 20px;
+    }
+
+    .class-modal-close {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #aaa;
+        line-height: 1;
+    }
+
+    .class-modal-close:hover { color: #333; }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .schedule-grid {
+        position: relative;
+    }
+
+    .day-column {
+        position: relative;
+    }
+
+    .class-block {
+        position: absolute;
+        left: 2px;
+        right: 2px;
+        background: #4f8ef7;
+        border-radius: 6px;
+        padding: 4px 8px;
+        overflow: hidden;
+        z-index: 10;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(79,142,247,0.3);
+        transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .class-block:hover {
+        background: #3a7be0;
+        box-shadow: 0 4px 12px rgba(79,142,247,0.4);
+    }
+
+    .class-block-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .class-block-time {
+        font-size: 10px;
+        color: rgba(255,255,255,0.8);
+        margin-top: 2px;
+    }
 </style>
 
 <div class="schedule-wrapper">
@@ -257,8 +366,10 @@
             {% endfor %}
             <option value="__add__" class="add-new-option">+ Add a new group</option>
         </select>
+        <button class="add-class-btn">+ Add Class</button>
     </div>
-    <div class="schedule-grid">
+    <div class="schedule-grid" id="scheduleGrid">
+        <!-- Headers -->
         <div class="header-spacer"></div>
         <div class="day-header">Monday</div>
         <div class="day-header">Tuesday</div>
@@ -266,6 +377,7 @@
         <div class="day-header">Thursday</div>
         <div class="day-header">Friday</div>
 
+        <!-- Time labels -->
         {% for slot in time_slots %}
             <div class="time-label {% if slot.is_half %}half-hour{% endif %}">
                 {% if not slot.is_half %}{{ slot.label }}{% endif %}
@@ -309,6 +421,85 @@
     </div>
 </div>
 
+<!-- Add Class Modal -->
+<div class="class-modal-overlay" id="classModal"
+     data-has-errors="{% if class_errors %}true{% else %}false{% endif %}"
+     onclick="handleClassOverlayClick(event)">
+    <div class="class-modal">
+        <button class="class-modal-close" onclick="closeClassModal()">&#x2715;</button>
+        <h2>Add Class</h2>
+
+        {% for error in class_errors %}
+            <div class="form-error">{{ error }}</div>
+        {% endfor %}
+
+        <form method="post" action="{% url 'create_class' %}">
+            {% csrf_token %}
+            <input type="hidden" name="group_id" value="{{ selected_group_id }}">
+
+            <div class="form-group">
+                <label for="class_name">Class Name</label>
+                <input type="text" id="class_name" name="class_name" class="modal-input"
+                    placeholder="e.g. Math, English..."
+                    value="{{ class_form_data.class_name|default:'' }}" required />
+            </div>
+
+            <div class="form-group">
+                <label for="class_group">Group</label>
+                <select id="class_group" name="group_id" class="modal-input">
+                    <option value="">— Select a group —</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}"
+                            {% if class_form_data.group_id == group.id|stringformat:"s" or selected_group_id == group.id|stringformat:"s" %}
+                                selected
+                            {% endif %}>
+                            {{ group }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="class_day">Day</label>
+                <select id="class_day" name="day" class="modal-input">
+                    <option value="monday" {% if class_form_data.day == 'monday' %}selected{% endif %}>Monday</option>
+                    <option value="tuesday" {% if class_form_data.day == 'tuesday' %}selected{% endif %}>Tuesday</option>
+                    <option value="wednesday" {% if class_form_data.day == 'wednesday' %}selected{% endif %}>Wednesday</option>
+                    <option value="thursday" {% if class_form_data.day == 'thursday' %}selected{% endif %}>Thursday</option>
+                    <option value="friday" {% if class_form_data.day == 'friday' %}selected{% endif %}>Friday</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="class_start">Start Time</label>
+                    <select id="class_start" name="start_time" class="modal-input">
+                        {% for slot in time_slots %}
+                            <option value="{{ slot.value }}"
+                                {% if class_form_data.start_time == slot.value %}selected{% endif %}>
+                                {{ slot.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="class_end">End Time</label>
+                    <select id="class_end" name="end_time" class="modal-input">
+                        {% for slot in time_slots %}
+                            <option value="{{ slot.value }}"
+                                {% if class_form_data.end_time == slot.value %}selected{% endif %}>
+                                {{ slot.label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">Save Class</button>
+        </form>
+    </div>
+</div>
+
 <script>
     document.getElementById('groupSelect').addEventListener('change', function() {
         handleGroupSelect(this.value);
@@ -336,12 +527,111 @@
         if (e.target === document.getElementById('groupModal')) closeGroupModal();
     }
 
+    function openClassModal() {
+        const modal = document.getElementById('classModal');
+        modal.classList.add('open');
+
+        // Default the group dropdown to the currently selected group
+        const currentGroup = '{{ selected_group_id }}';
+        if (currentGroup) {
+            document.getElementById('class_group').value = currentGroup;
+        }
+    }
+
+    function closeClassModal() {
+        document.getElementById('classModal').classList.remove('open');
+    }
+
+    function handleClassOverlayClick(e) {
+        if (e.target === document.getElementById('classModal')) closeClassModal();
+    }
+
+    document.querySelector('.add-class-btn').addEventListener('click', openClassModal);
+
     if (document.getElementById('groupModal').dataset.hasErrors === 'true') {
         openGroupModal();
     }
 
+    if (document.getElementById('classModal').dataset.hasErrors === 'true') {
+        openClassModal();
+    }
+
+    // Render class blocks on the grid
+    const classesByDay = JSON.parse('{{ classes_json|escapejs }}');
+
+    function timeToMinutes(timeStr) {
+        const [h, m] = timeStr.split(':').map(Number);
+        return h * 60 + m;
+    }
+
+    const GRID_START = timeToMinutes('07:30');
+    const CELL_HEIGHT = 48; // px per 30-minute slot
+
+    function renderClasses() {
+        // Remove any existing class blocks
+        document.querySelectorAll('.class-block').forEach(b => b.remove());
+
+        const grid = document.getElementById('scheduleGrid');
+        if (!grid) return;
+
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+        days.forEach((day, dayIndex) => {
+            const classes = classesByDay[day] || [];
+
+            classes.forEach(cls => {
+                const startMins = timeToMinutes(cls.start);
+                const endMins = timeToMinutes(cls.end);
+                const durationMins = endMins - startMins;
+
+                // Calculate position relative to grid start
+                const topOffset = ((startMins - GRID_START) / 30) * CELL_HEIGHT;
+                const height = (durationMins / 30) * CELL_HEIGHT;
+
+                // Find the correct cell to anchor to
+                // Grid has 1 time label + 5 day columns = 6 columns
+                // First data row starts after 6 header cells
+                // Each row: col 0 = time label, cols 1-5 = days
+                const cells = grid.querySelectorAll(
+                    `.schedule-cell[data-day="${day}"]`
+                );
+
+                if (cells.length === 0) return;
+
+                const firstCell = cells[0];
+                const cellRect = firstCell.getBoundingClientRect();
+                const gridRect = grid.getBoundingClientRect();
+
+                const block = document.createElement('div');
+                block.className = 'class-block';
+                block.style.top = (firstCell.offsetTop + topOffset) + 'px';
+                block.style.height = height + 'px';
+                block.style.left = firstCell.offsetLeft + 2 + 'px';
+                block.style.width = firstCell.offsetWidth - 4 + 'px';
+                block.style.position = 'absolute';
+
+                const startLabel = cls.start.replace(/^0/, '');
+                const endLabel = cls.end.replace(/^0/, '');
+
+                block.innerHTML = `
+                    <div class="class-block-name">${cls.name}</div>
+                    <div class="class-block-time">${startLabel} – ${endLabel}</div>
+                `;
+
+                grid.appendChild(block);
+            });
+        });
+    }
+
+    // Run on load and on window resize
+    renderClasses();
+    window.addEventListener('resize', renderClasses);
+
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') closeGroupModal();
+        if (e.key === 'Escape') {
+            closeGroupModal();
+            closeClassModal();
+        }
     });
 </script>
 

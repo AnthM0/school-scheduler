@@ -8,6 +8,15 @@ DAYS_OF_WEEK = [
     ('friday', 'Friday'),
 ]
 
+SUBJECTS = [
+    ('math', 'Math'),
+    ('history', 'History'),
+    ('science', 'Science'),
+    ('english', 'English'),
+    ('language', 'Language'),
+    ('other', 'Other'),
+]
+
 class Group(models.Model):
     name = models.CharField(max_length=100)
     parent = models.ForeignKey(
@@ -36,6 +45,7 @@ class Group(models.Model):
 
 class Class(models.Model):
     name = models.CharField(max_length=100)
+    subject = models.CharField(max_length=20, choices=SUBJECTS, default='other')
     start_time = models.TimeField()
     end_time = models.TimeField()
     minutes = models.PositiveIntegerField(editable=False, default=0)

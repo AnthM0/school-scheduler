@@ -308,6 +308,20 @@
 
     .class-modal-close:hover { color: #333; }
 
+    .class-block.subject-math     { background: #4f8ef7; box-shadow: 0 2px 6px rgba(79,142,247,0.3); }
+    .class-block.subject-history  { background: #e8823a; box-shadow: 0 2px 6px rgba(232,130,58,0.3); }
+    .class-block.subject-science  { background: #3ab795; box-shadow: 0 2px 6px rgba(58,183,149,0.3); }
+    .class-block.subject-english  { background: #9b5fe0; box-shadow: 0 2px 6px rgba(155,95,224,0.3); }
+    .class-block.subject-language { background: #e05f7a; box-shadow: 0 2px 6px rgba(224,95,122,0.3); }
+    .class-block.subject-other    { background: #f0b429; box-shadow: 0 2px 6px rgba(240,180,41,0.3); }
+
+    .class-block.subject-math:hover     { background: #3a7be0; }
+    .class-block.subject-history:hover  { background: #d06e28; }
+    .class-block.subject-science:hover  { background: #2a9e7e; }
+    .class-block.subject-english:hover  { background: #8044cc; }
+    .class-block.subject-language:hover { background: #c44d68; }
+    .class-block.subject-other:hover    { background: #d49e1a; }
+
     .form-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -372,6 +386,28 @@
         </select>
         <button class="add-class-btn">+ Add Class</button>
     </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-bottom:16px;">
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#555;">
+            <span style="width:12px; height:12px; border-radius:3px; background:#4f8ef7; display:inline-block;"></span>Math
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#555;">
+            <span style="width:12px; height:12px; border-radius:3px; background:#e8823a; display:inline-block;"></span>History
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#555;">
+            <span style="width:12px; height:12px; border-radius:3px; background:#3ab795; display:inline-block;"></span>Science
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#555;">
+            <span style="width:12px; height:12px; border-radius:3px; background:#9b5fe0; display:inline-block;"></span>English
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#555;">
+            <span style="width:12px; height:12px; border-radius:3px; background:#e05f7a; display:inline-block;"></span>Language
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#555;">
+            <span style="width:12px; height:12px; border-radius:3px; background:#f0b429; display:inline-block;"></span>Other
+        </div>
+    </div>
+
     <div class="schedule-grid" id="scheduleGrid">
         <!-- Headers -->
         <div class="header-spacer"></div>
@@ -447,6 +483,18 @@
                 <input type="text" id="class_name" name="class_name" class="modal-input"
                     placeholder="e.g. Math, English..."
                     value="{{ class_form_data.class_name|default:'' }}" required />
+            </div>
+
+            <div class="form-group">
+                <label for="class_subject">Subject</label>
+                <select id="class_subject" name="subject" class="modal-input">
+                    <option value="other">Other</option>
+                    <option value="math">Math</option>
+                    <option value="history">History</option>
+                    <option value="science">Science</option>
+                    <option value="english">English</option>
+                    <option value="language">Language</option>
+                </select>
             </div>
 
             <div class="form-group">
@@ -585,6 +633,7 @@
             form.action = `/schedule-template/edit-class/${editData.id}/`;
             document.getElementById('form_edit_id').value = editData.id;
             document.getElementById('class_name').value = editData.name;
+            document.getElementById('class_subject').value = editData.subject || 'other';
             document.getElementById('class_group').value = editData.group_id;
             document.getElementById('form_group_id').value = editData.group_id;
             document.getElementById('class_day').value = editData.day;
@@ -603,6 +652,7 @@
             form.action = "{% url 'create_class' %}";
             document.getElementById('form_edit_id').value = '';
             document.getElementById('class_name').value = '';
+            document.getElementById('class_subject').value = 'other';
             document.getElementById('class_group').value = '{{ selected_group_id }}';
             document.getElementById('form_group_id').value = '{{ selected_group_id }}';
             document.getElementById('class_day').value = 'monday';
@@ -668,7 +718,7 @@
                 if (!firstCell) return;
 
                 const block = document.createElement('div');
-                block.className = 'class-block';
+                block.className = `class-block subject-${cls.subject || 'other'}`;
                 block.style.top = (firstCell.offsetTop + topOffset) + 'px';
                 block.style.height = height + 'px';
                 block.style.left = firstCell.offsetLeft + 2 + 'px';

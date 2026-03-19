@@ -80,6 +80,7 @@ def get_classes_for_group(group):
                 classes_by_day[day].append({
                     'id': c.id,
                     'name': c.name,
+                    'subject': c.subject,
                     'start': c.start_time.strftime('%H:%M'),
                     'end': c.end_time.strftime('%H:%M'),
                     'group': g.name,
@@ -92,6 +93,7 @@ def get_classes_for_group(group):
 def create_class(request):
     if request.method == 'POST':
         name = request.POST.get('class_name', '').strip()
+        subject = request.POST.get('subject', 'other').strip() or 'other'
         day = request.POST.get('day', '')
         start_time_str = request.POST.get('start_time', '')
         end_time_str = request.POST.get('end_time', '')
@@ -135,7 +137,7 @@ def create_class(request):
             return redirect(f'/schedule-template/?group={group_id}')
 
         # Create the class and add it to the correct day on the group
-        new_class = Class(name=name, start_time=start_time, end_time=end_time)
+        new_class = Class(name=name, subject=subject, start_time=start_time, end_time=end_time)
         new_class.save()
         getattr(group, day).add(new_class)
 
@@ -154,6 +156,7 @@ def edit_class(request, class_id):
     if request.method == 'POST':
         name = request.POST.get('class_name', '').strip()
         day = request.POST.get('day', '')
+        subject = request.POST.get('subject', 'other').strip() or 'other'
         start_time_str = request.POST.get('start_time', '')
         end_time_str = request.POST.get('end_time', '')
 
@@ -202,6 +205,7 @@ def edit_class(request, class_id):
 
         # Update the class fields
         existing_class.name = name
+        existing_class.subject = subject
         existing_class.start_time = start_time
         existing_class.end_time = end_time
         existing_class.save()

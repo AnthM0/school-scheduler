@@ -418,7 +418,15 @@
 {# ============================================================ #}
 {#  MODALS                                                       #}
 {# ============================================================ #}
-{% include 'myapp/modal_group.html' %}
+{% include 'myapp/modal_group.html' with
+    modal_id="groupModal"
+    form_action=request.path
+    errors=messages
+    form_data={}
+    title="Create New Group"
+    submit_label="Create Group"
+    hidden_field_name="create_group"
+%}
 {% include 'myapp/modal_class.html' %}
 
 {# ============================================================ #}

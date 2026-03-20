@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from ..models import UserProfile, Group
 
 
-def users_and_permissions(request):
+def users_and_groups(request):
     """
     Renders the Users and Permissions page.
     Handles both new user creation and new group creation.
@@ -38,7 +38,7 @@ def users_and_permissions(request):
                 'first_name': first_name, 'last_name': last_name,
                 'email': email, 'role': role, 'group': group_id,
             }
-            return redirect('users_and_permissions')
+            return redirect('users_and_groups')
 
         user            = User.objects.create_user(username=email, email=email, password=password)
         user.first_name = first_name
@@ -53,7 +53,7 @@ def users_and_permissions(request):
             group = Group.objects.filter(id=group_id).first()
 
         UserProfile.objects.create(user=user, role=role, group=group)
-        return redirect('users_and_permissions')
+        return redirect('users_and_groups')
 
     # ── Handle create group ──
     if request.method == 'POST' and 'create_group' in request.POST:
@@ -63,12 +63,12 @@ def users_and_permissions(request):
         if not name:
             request.session['group_errors']    = ['Group name is required.']
             request.session['group_form_data'] = {'parent_group': parent_id}
-            return redirect('users_and_permissions')
+            return redirect('users_and_groups')
 
         parent = Group.objects.filter(id=parent_id).first() if parent_id else None
         group  = Group(name=name, parent=parent)
         group.save()
-        return redirect('users_and_permissions')
+        return redirect('users_and_groups')
 
     # ── Build context ──
     user_errors     = request.session.pop('user_errors',     [])
@@ -92,7 +92,7 @@ def users_and_permissions(request):
     )
     groups          = sorted(Group.objects.all(), key=lambda g: str(g).lower())
 
-    return render(request, 'myapp/users_and_permissions.html', {
+    return render(request, 'myapp/users_and_groups.html', {
         'users':           users,
         'groups':          groups,
         'user_errors':     user_errors,
@@ -114,13 +114,13 @@ def edit_user(request, user_id):
     """
     # Prevent editing your own account
     if request.user.id == user_id:
-        return redirect('users_and_permissions')
+        return redirect('users_and_groups')
 
     try:
         target_user = User.objects.get(id=user_id)
         profile     = target_user.profile
     except (User.DoesNotExist, UserProfile.DoesNotExist):
-        return redirect('users_and_permissions')
+        return redirect('users_and_groups')
 
     if request.method == 'POST':
         first_name = request.POST.get('first_name', '').strip()
@@ -150,7 +150,7 @@ def edit_user(request, user_id):
                 'email':      email,      'role':      role,
                 'group':      group_id,
             }
-            return redirect('users_and_permissions')
+            return redirect('users_and_groups')
 
         # Update user fields
         target_user.first_name = first_name
@@ -171,9 +171,9 @@ def edit_user(request, user_id):
         profile.group = group
         profile.save()
 
-        return redirect('users_and_permissions')
+        return redirect('users_and_groups')
 
-    return redirect('users_and_permissions')
+    return redirect('users_and_groups')
 
 
 def delete_user(request, user_id):
@@ -182,7 +182,7 @@ def delete_user(request, user_id):
     The currently logged-in user cannot delete their own account.
     """
     if request.user.id == user_id:
-        return redirect('users_and_permissions')
+        return redirect('users_and_groups')
 
     if request.method == 'POST':
         try:
@@ -190,7 +190,7 @@ def delete_user(request, user_id):
         except User.DoesNotExist:
             pass
 
-    return redirect('users_and_permissions')
+    return redirect('users_and_groups')
 
 def edit_group(request, group_id):
     """
@@ -199,7 +199,7 @@ def edit_group(request, group_id):
     try:
         group = Group.objects.get(id=group_id)
     except Group.DoesNotExist:
-        return redirect('users_and_permissions')
+        return redirect('users_and_groups')
 
     if request.method == 'POST':
         name      = request.POST.get('group_name', '').strip()
@@ -212,7 +212,7 @@ def edit_group(request, group_id):
                 'group_name':   name,
                 'parent_group': parent_id,
             }
-            return redirect('users_and_permissions')
+            return redirect('users_and_groups')
 
         # Prevent a group from being its own parent
         parent = None
@@ -223,9 +223,9 @@ def edit_group(request, group_id):
         group.parent = parent
         group.save()
 
-        return redirect('users_and_permissions')
+        return redirect('users_and_groups')
 
-    return redirect('users_and_permissions')
+    return redirect('users_and_groups')
 
 
 def delete_group(request, group_id):
@@ -238,4 +238,4 @@ def delete_group(request, group_id):
         except Group.DoesNotExist:
             pass
 
-    return redirect('users_and_permissions')
+    return redirect('users_and_groups')

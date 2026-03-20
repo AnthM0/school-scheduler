@@ -1,0 +1,167 @@
+{# ============================================================ #}
+{#  USERS AND GROUPS PAGE — MODALS                              #}
+{#                                                               #}
+{#  Contains:                                                    #}
+{#    1. Create user modal                                       #}
+{#    2. Edit user modal                                         #}
+{#    3. Create group modal (via shared modal_group.html)        #}
+{#    4. Edit group modal (via shared modal_group.html)          #}
+{#    5. Hidden delete forms                                     #}
+{# ============================================================ #}
+
+{# ── 1. Create user modal ── #}
+<div class="user-modal-overlay" id="userModal"
+     data-has-errors="{% if user_errors %}true{% else %}false{% endif %}"
+     onclick="handleUserOverlayClick(event)">
+    <div class="user-modal">
+        <button class="user-modal-close" onclick="closeUserModal()">&#x2715;</button>
+        <h2>Create User</h2>
+
+        {% for error in user_errors %}
+            <div class="form-error">{{ error }}</div>
+        {% endfor %}
+
+        <form method="post" action="{% url 'users_and_groups' %}">
+            {% csrf_token %}
+            <input type="hidden" name="create_user" value="1">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="first_name">First Name</label>
+                    <input type="text" id="first_name" name="first_name" class="modal-input"
+                        placeholder="Jane"
+                        value="{{ user_form_data.first_name|default:'' }}" required />
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last Name</label>
+                    <input type="text" id="last_name" name="last_name" class="modal-input"
+                        placeholder="Smith"
+                        value="{{ user_form_data.last_name|default:'' }}" required />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="user_email">Email Address</label>
+                <input type="email" id="user_email" name="email" class="modal-input"
+                    placeholder="jane@example.com"
+                    value="{{ user_form_data.email|default:'' }}" required />
+            </div>
+
+            <div class="form-group">
+                <label for="user_password">Password</label>
+                <input type="password" id="user_password" name="password"
+                    class="modal-input" placeholder="••••••••" required />
+            </div>
+
+            <div class="form-group">
+                <label for="user_role">Role</label>
+                <select id="user_role" name="role" class="modal-input"
+                        onchange="handleRoleChange(this.value)">
+                    <option value="student"   {% if user_form_data.role == 'student'   %}selected{% endif %}>Student</option>
+                    <option value="teacher"   {% if user_form_data.role == 'teacher'   %}selected{% endif %}>Teacher</option>
+                    <option value="admin"     {% if user_form_data.role == 'admin'     %}selected{% endif %}>Admin</option>
+                    <option value="superuser" {% if user_form_data.role == 'superuser' %}selected{% endif %}>SuperUser</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="groupField">
+                <label for="user_group">Group</label>
+                <select id="user_group" name="group" class="modal-input">
+                    <option value="">— None —</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}"
+                            {% if user_form_data.group == group.id|stringformat:"s" %}selected{% endif %}>
+                            {{ group }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="submit-btn">Create User</button>
+        </form>
+    </div>
+</div>
+
+{# ── 2. Edit user modal ── #}
+<div class="user-modal-overlay" id="editUserModal"
+     data-has-errors="{% if edit_errors %}true{% else %}false{% endif %}"
+     data-edit-user-id="{{ edit_form_data.user_id|default:'' }}"
+     data-edit-first-name="{{ edit_form_data.first_name|default:''|escapejs }}"
+     data-edit-last-name="{{ edit_form_data.last_name|default:''|escapejs }}"
+     data-edit-email="{{ edit_form_data.email|default:''|escapejs }}"
+     data-edit-role="{{ edit_form_data.role|default:'' }}"
+     data-edit-group="{{ edit_form_data.group|default:'' }}"
+     onclick="handleEditUserOverlayClick(event)">
+    <div class="user-modal">
+        <button class="user-modal-close" onclick="closeEditUserModal()">&#x2715;</button>
+        <h2>Edit User</h2>
+
+        {% for error in edit_errors %}
+            <div class="form-error">{{ error }}</div>
+        {% endfor %}
+
+        <form method="post" id="editUserForm" action="">
+            {% csrf_token %}
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit_first_name">First Name</label>
+                    <input type="text" id="edit_first_name" name="first_name"
+                        class="modal-input" value="{{ edit_form_data.first_name|default:'' }}" required />
+                </div>
+                <div class="form-group">
+                    <label for="edit_last_name">Last Name</label>
+                    <input type="text" id="edit_last_name" name="last_name"
+                        class="modal-input" value="{{ edit_form_data.last_name|default:'' }}" required />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_email">Email Address</label>
+                <input type="email" id="edit_email" name="email"
+                    class="modal-input" value="{{ edit_form_data.email|default:'' }}" required />
+            </div>
+
+            <div class="form-group">
+                <label for="edit_password">
+                    Password
+                    <span style="font-weight:400; text-transform:none;">(leave blank to keep existing)</span>
+                </label>
+                <input type="password" id="edit_password" name="password"
+                    class="modal-input" placeholder="••••••••" />
+            </div>
+
+            {# Role is read-only — displayed but not editable #}
+            <div class="form-group">
+                <label>Role</label>
+                <input type="hidden" id="edit_role" name="role" />
+                <div id="edit_role_display" style="padding:10px 14px; border:1.5px solid #eee; border-radius:8px; font-size:14px; background:#f8f9fc; color:#555;">—</div>
+            </div>
+
+            <div class="form-group" id="editGroupField">
+                <label for="edit_group">Group</label>
+                <select id="edit_group" name="group" class="modal-input">
+                    <option value="">— None —</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}">{{ group }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:4px;">
+                <button type="submit" class="submit-btn">Save Changes</button>
+                <button type="button" class="delete-btn" onclick="deleteUser()">Delete User</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── 3. Create group modal (reuses shared modal_group.html) ── #}
+{% include 'myapp/modal_group.html' with modal_id="adminGroupModal" form_action=request.path errors=group_errors form_data=group_form_data title="Create Group" submit_label="Create Group" hidden_field_name="create_group" %}
+
+{# ── 4. Edit group modal (reuses shared modal_group.html) ── #}
+{% include 'myapp/modal_group.html' with modal_id="editGroupModal" form_action="" errors=edit_group_errors form_data=edit_group_form_data title="Edit Group" submit_label="Save Changes" hidden_field_name="" %}
+
+{# ── 5. Hidden delete forms ── #}
+<form method="post" id="deleteUserForm"  action="">{% csrf_token %}</form>
+<form method="post" id="deleteGroupForm" action="">{% csrf_token %}</form>

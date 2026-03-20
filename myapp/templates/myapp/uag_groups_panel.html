@@ -1,0 +1,46 @@
+{# ============================================================ #}
+{#  GROUPS PANEL                                                 #}
+{#  Displays all groups in a table with edit icons              #}
+{# ============================================================ #}
+<div class="panel">
+    <div class="panel-header">
+        <h2>Groups</h2>
+        <span class="panel-count">{{ groups|length }}</span>
+    </div>
+    {% if groups %}
+    <table class="groups-table">
+        <thead>
+            <tr>
+                <th>Full Path</th>
+                <th>Members</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+            <tr>
+                <td>{{ group }}</td>
+                <td>{{ group.members.count }}</td>
+                <td>
+                    <button class="edit-user-btn"
+                        data-group-id="{{ group.id }}"
+                        data-group-name="{{ group.name|escapejs }}"
+                        data-parent-id="{{ group.parent.id|default:'' }}"
+                        onclick="openEditGroupModal(
+                            this.dataset.groupId,
+                            this.dataset.groupName,
+                            this.dataset.parentId
+                        )">
+                        <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;">
+                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                        </svg>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">No groups yet.</div>
+    {% endif %}
+</div>

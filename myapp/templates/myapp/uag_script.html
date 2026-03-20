@@ -1,0 +1,187 @@
+{# ============================================================ #}
+{#  USERS AND GROUPS PAGE — JAVASCRIPT                          #}
+{#                                                               #}
+{#  Sections:                                                    #}
+{#    1. Shared modal utilities                                  #}
+{#    2. Create user modal                                       #}
+{#    3. Edit user modal                                         #}
+{#    4. Delete user                                             #}
+{#    5. Create group modal                                      #}
+{#    6. Edit group modal                                        #}
+{#    7. Delete group                                            #}
+{#    8. Initialisation                                          #}
+{# ============================================================ #}
+<script>
+
+// ── 1. SHARED MODAL UTILITIES ───────────────────────────────────
+// Generic helpers used by the reusable modal_group.html partial
+
+function handleOverlayClick(modalId, event) {
+    if (event.target === document.getElementById(modalId)) {
+        closeModalById(modalId);
+    }
+}
+
+function closeModalById(modalId) {
+    document.getElementById(modalId).classList.remove('open');
+}
+
+
+// ── 2. CREATE USER MODAL ────────────────────────────────────────
+
+function openUserModal() {
+    document.getElementById('userModal').classList.add('open');
+}
+
+function closeUserModal() {
+    document.getElementById('userModal').classList.remove('open');
+}
+
+function handleUserOverlayClick(e) {
+    if (e.target === document.getElementById('userModal')) closeUserModal();
+}
+
+// Show/hide group field depending on selected role
+function handleRoleChange(role) {
+    document.getElementById('groupField').style.display =
+        (role === 'teacher' || role === 'student') ? 'flex' : 'none';
+}
+
+
+// ── 3. EDIT USER MODAL ──────────────────────────────────────────
+
+let currentEditUserId = null;
+
+function openEditUserModal(userId, firstName, lastName, email, role, groupId) {
+    currentEditUserId = userId;
+
+    document.getElementById('editUserForm').action = `/users-and-groups/edit-user/${userId}/`;
+    document.getElementById('edit_first_name').value = firstName;
+    document.getElementById('edit_last_name').value  = lastName;
+    document.getElementById('edit_email').value      = email;
+    document.getElementById('edit_password').value   = '';
+    document.getElementById('edit_role').value       = role;
+    document.getElementById('edit_group').value      = groupId;
+
+    // Show role as read-only text instead of a dropdown
+    const roleLabels = { superuser: 'SuperUser', admin: 'Admin', teacher: 'Teacher', student: 'Student' };
+    document.getElementById('edit_role_display').textContent = roleLabels[role] || role;
+
+    // Show group field only for teachers and students
+    document.getElementById('editGroupField').style.display =
+        (role === 'teacher' || role === 'student') ? 'flex' : 'none';
+
+    document.getElementById('editUserModal').classList.add('open');
+}
+
+function closeEditUserModal() {
+    document.getElementById('editUserModal').classList.remove('open');
+}
+
+function handleEditUserOverlayClick(e) {
+    if (e.target === document.getElementById('editUserModal')) closeEditUserModal();
+}
+
+
+// ── 4. DELETE USER ──────────────────────────────────────────────
+
+function deleteUser() {
+    if (!confirm('Are you sure you want to delete this user? This cannot be undone.')) return;
+    const form = document.getElementById('deleteUserForm');
+    form.action = `/users-and-groups/delete-user/${currentEditUserId}/`;
+    form.submit();
+}
+
+
+// ── 5. CREATE GROUP MODAL ───────────────────────────────────────
+
+function openAdminGroupModal() {
+    const el = document.getElementById('adminGroupModal');
+    console.log('adminGroupModal element:', el);
+    if (el) el.classList.add('open');
+}
+
+function closeAdminGroupModal() {
+    closeModalById('adminGroupModal');
+}
+
+
+// ── 6. EDIT GROUP MODAL ─────────────────────────────────────────
+
+let currentEditGroupId = null;
+
+function openEditGroupModal(groupId, groupName, parentId) {
+    currentEditGroupId = groupId;
+
+    // Point the shared modal's form at the correct edit URL
+    const form = document.querySelector('#editGroupModal form');
+    form.action = `/users-and-groups/edit-group/${groupId}/`;
+
+    document.getElementById('editGroupModal_name').value   = groupName;
+    document.getElementById('editGroupModal_parent').value = parentId;
+
+    document.getElementById('editGroupModal').classList.add('open');
+}
+
+function closeEditGroupModal() {
+    document.getElementById('editGroupModal').classList.remove('open');
+}
+
+
+// ── 7. DELETE GROUP ─────────────────────────────────────────────
+
+function deleteGroup() {
+    if (!confirm('Are you sure you want to delete this group? This cannot be undone.')) return;
+    const form = document.getElementById('deleteGroupForm');
+    form.action = `/users-and-groups/delete-group/${currentEditGroupId}/`;
+    form.submit();
+}
+
+
+// ── 8. INITIALISATION ───────────────────────────────────────────
+
+// Re-open modals if they had validation errors on last submit
+const userModalEl = document.getElementById('userModal');
+if (userModalEl && userModalEl.dataset.hasErrors === 'true') {
+    openUserModal();
+}
+
+const editUserModalEl = document.getElementById('editUserModal');
+if (editUserModalEl && editUserModalEl.dataset.hasErrors === 'true') {
+    openEditUserModal(
+        editUserModalEl.dataset.editUserId,
+        editUserModalEl.dataset.editFirstName,
+        editUserModalEl.dataset.editLastName,
+        editUserModalEl.dataset.editEmail,
+        editUserModalEl.dataset.editRole,
+        editUserModalEl.dataset.editGroup
+    );
+}
+
+const adminGroupModalEl = document.getElementById('adminGroupModal');
+if (adminGroupModalEl && adminGroupModalEl.dataset.hasErrors === 'true') {
+    openAdminGroupModal();
+}
+
+const editGroupModalEl = document.getElementById('editGroupModal');
+if (editGroupModalEl && editGroupModalEl.dataset.hasErrors === 'true') {
+    openEditGroupModal(
+        editGroupModalEl.dataset.editGroupId,
+        editGroupModalEl.dataset.editGroupName,
+        editGroupModalEl.dataset.editParentGroup
+    );
+}
+// Set initial group field visibility based on current role selection
+handleRoleChange(document.getElementById('user_role') ? document.getElementById('user_role').value : 'student');
+
+// Close all modals on Escape key
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+        closeUserModal();
+        closeEditUserModal();
+        closeModalById('adminGroupModal');
+        closeEditGroupModal();
+    }
+});
+
+</script>

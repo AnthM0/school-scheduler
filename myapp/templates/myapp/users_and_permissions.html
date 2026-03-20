@@ -1,0 +1,911 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}RevSchool Internal - Users and Permissions{% endblock %}
+
+{% block content %}
+
+{# ============================================================ #}
+{#  STYLES                                                       #}
+{# ============================================================ #}
+<style>
+
+    /* ── Page layout ── */
+    .page-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding-bottom: 40px;
+    }
+
+    .page-title {
+        text-align: center;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #1a1a2e;
+        margin-bottom: 28px;
+        text-transform: uppercase;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .page-title span {
+        display: inline-block;
+        border-bottom: 3px solid #4f8ef7;
+        padding-bottom: 6px;
+    }
+
+    /* ── Two-column layout ── */
+    .page-layout {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    /* ── Left sidebar buttons ── */
+    .sidebar-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .action-btn {
+        width: 100%;
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .action-btn.blue {
+        background: #4f8ef7;
+        color: #fff;
+    }
+
+    .action-btn.blue:hover { background: #3a7be0; }
+
+    .action-btn.dark {
+        background: #1a1a2e;
+        color: #fff;
+    }
+
+    .action-btn.dark:hover { background: #2e2e4e; }
+
+    /* ── Right content panels ── */
+    .content-panels {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .panel {
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    }
+
+    .panel-header {
+        background: #1a1a2e;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .panel-header h2 {
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+    .panel-count {
+        background: rgba(255,255,255,0.15);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 12px;
+    }
+
+    /* ── Users table ── */
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .users-table th {
+        background: #f8f9fc;
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #8892a4;
+        border-bottom: 1px solid #eaecf2;
+    }
+
+    .users-table td {
+        padding: 12px 16px;
+        font-size: 14px;
+        color: #1a1a2e;
+        border-bottom: 1px solid #eaecf2;
+    }
+
+    .users-table tr:last-child td { border-bottom: none; }
+    .users-table tr:hover td { background: #f8f9fc; }
+
+    /* ── Groups table ── */
+    .groups-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .groups-table th {
+        background: #f8f9fc;
+        padding: 10px 16px;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        color: #8892a4;
+        border-bottom: 1px solid #eaecf2;
+    }
+
+    .groups-table td {
+        padding: 12px 16px;
+        font-size: 14px;
+        color: #1a1a2e;
+        border-bottom: 1px solid #eaecf2;
+    }
+
+    .groups-table tr:last-child td { border-bottom: none; }
+    .groups-table tr:hover td { background: #f8f9fc; }
+
+    /* ── Role badges ── */
+    .role-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .role-superuser { background: #f0e6ff; color: #6b21a8; }
+    .role-admin     { background: #e6f0ff; color: #1d4ed8; }
+    .role-teacher   { background: #e6fff5; color: #065f46; }
+    .role-student   { background: #fff7e6; color: #92400e; }
+
+    /* ── Empty state ── */
+    .empty-state {
+        text-align: center;
+        padding: 32px 24px;
+        color: #8892a4;
+        font-size: 14px;
+    }
+
+    /* ── Shared modal styles ── */
+    .user-modal-overlay,
+    .group-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 400;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .user-modal-overlay.open,
+    .group-modal-overlay.open { display: flex; }
+
+    .user-modal,
+    .admin-group-modal {
+        background: #fff;
+        border-radius: 12px;
+        padding: 32px;
+        width: 100%;
+        max-width: 480px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        position: relative;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .user-modal h2,
+    .admin-group-modal h2 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 20px;
+    }
+
+    .user-modal-close,
+    .admin-group-modal-close {
+        position: absolute;
+        top: 14px;
+        right: 16px;
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #aaa;
+        line-height: 1;
+    }
+
+    .user-modal-close:hover,
+    .admin-group-modal-close:hover { color: #333; }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        font-size: 12px;
+        font-weight: 600;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .modal-input {
+        padding: 10px 14px;
+        border: 1.5px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.2s;
+        width: 100%;
+        background: #fff;
+    }
+
+    .modal-input:focus { border-color: #1a1a2e; }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .form-error {
+        background: #fff0f0;
+        border: 1px solid #ffcccc;
+        color: #cc0000;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-bottom: 16px;
+    }
+
+    .submit-btn {
+        width: 100%;
+        padding: 11px;
+        background: #1a1a2e;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        margin-top: 4px;
+    }
+
+    .submit-btn:hover { background: #2e2e4e; }
+
+    .edit-user-btn {
+        background: none;
+        border: 1.5px solid #dde2ec;
+        border-radius: 6px;
+        padding: 4px 8px;
+        cursor: pointer;
+        color: #8892a4;
+        transition: color 0.2s, border-color 0.2s;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .edit-user-btn:hover {
+        color: #4f8ef7;
+        border-color: #4f8ef7;
+    }
+
+    .delete-btn {
+        width: 100%;
+        padding: 11px;
+        background: #fff;
+        color: #cc0000;
+        border: 1.5px solid #cc0000;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+
+    .delete-btn:hover {
+        background: #cc0000;
+        color: #fff;
+    }
+
+    #groupField { display: none; }
+
+</style>
+
+{# ============================================================ #}
+{#  PAGE CONTENT                                                 #}
+{# ============================================================ #}
+<div class="page-wrapper">
+
+    <h1 class="page-title"><span>Users and Permissions</span></h1>
+
+    <div class="page-layout">
+
+        {# ── Left: action buttons ── #}
+        <div class="sidebar-actions">
+            <button class="action-btn blue" onclick="openUserModal()">
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:#fff;flex-shrink:0;">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+                </svg>
+                Add User
+            </button>
+            <button class="action-btn dark" onclick="openAdminGroupModal()">
+                <svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:#fff;flex-shrink:0;">
+                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                </svg>
+                Add Group
+            </button>
+        </div>
+
+        {# ── Right: users and groups panels ── #}
+        <div class="content-panels">
+
+            {# Users panel #}
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Users</h2>
+                    <span class="panel-count">{{ users|length }}</span>
+                </div>
+                {% if users %}
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Group</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profile in users %}
+                        <tr>
+                            <td>{{ profile.user.get_full_name }}</td>
+                            <td>{{ profile.user.email }}</td>
+                            <td>
+                                <span class="role-badge role-{{ profile.role }}">
+                                    {{ profile.get_role_display }}
+                                </span>
+                            </td>
+                            <td>{{ profile.group|default:"—" }}</td>
+                            <td>
+                                {% if profile.user.id != request.user.id %}
+                                <button class="edit-user-btn"
+                                    data-user-id="{{ profile.user.id }}"
+                                    data-first-name="{{ profile.user.first_name|escapejs }}"
+                                    data-last-name="{{ profile.user.last_name|escapejs }}"
+                                    data-email="{{ profile.user.email|escapejs }}"
+                                    data-role="{{ profile.role }}"
+                                    data-group-id="{{ profile.group.id|default:'' }}"
+                                    onclick="openEditUserModal(
+                                        this.dataset.userId,
+                                        this.dataset.firstName,
+                                        this.dataset.lastName,
+                                        this.dataset.email,
+                                        this.dataset.role,
+                                        this.dataset.groupId
+                                    )">
+                                    <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;">
+                                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                    </svg>
+                                </button>
+                                {% else %}
+                                <span style="font-size:12px; color:#bbb;">you</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">No users yet.</div>
+                {% endif %}
+            </div>
+
+            {# Groups panel #}
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Groups</h2>
+                    <span class="panel-count">{{ groups|length }}</span>
+                </div>
+                {% if groups %}
+                <table class="groups-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Members</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for group in groups %}
+                        <tr>
+                            <td>{{ group }}</td>
+                            <td>{{ group.members.count }}</td>
+                            <td>
+                                <button class="edit-user-btn"
+                                    data-group-id="{{ group.id }}"
+                                    data-group-name="{{ group.name|escapejs }}"
+                                    data-parent-id="{{ group.parent.id|default:'' }}"
+                                    onclick="openEditGroupModal(
+                                        this.dataset.groupId,
+                                        this.dataset.groupName,
+                                        this.dataset.parentId
+                                    )">
+                                    <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:currentColor;">
+                                        <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">No groups yet.</div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{# ============================================================ #}
+{#  CREATE USER MODAL                                            #}
+{# ============================================================ #}
+<div class="user-modal-overlay" id="userModal"
+     data-has-errors="{% if user_errors %}true{% else %}false{% endif %}"
+     onclick="handleUserOverlayClick(event)">
+    <div class="user-modal">
+        <button class="user-modal-close" onclick="closeUserModal()">&#x2715;</button>
+        <h2>Create User</h2>
+
+        {# Validation errors from the view #}
+        {% for error in user_errors %}
+            <div class="form-error">{{ error }}</div>
+        {% endfor %}
+
+        <form method="post" action="{% url 'users_and_permissions' %}">
+            {% csrf_token %}
+            <input type="hidden" name="create_user" value="1">
+
+            {# ── Name ── #}
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="first_name">First Name</label>
+                    <input type="text" id="first_name" name="first_name" class="modal-input"
+                        placeholder="Jane"
+                        value="{{ user_form_data.first_name|default:'' }}" required />
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last Name</label>
+                    <input type="text" id="last_name" name="last_name" class="modal-input"
+                        placeholder="Smith"
+                        value="{{ user_form_data.last_name|default:'' }}" required />
+                </div>
+            </div>
+
+            {# ── Email ── #}
+            <div class="form-group">
+                <label for="user_email">Email Address</label>
+                <input type="email" id="user_email" name="email" class="modal-input"
+                    placeholder="jane@example.com"
+                    value="{{ user_form_data.email|default:'' }}" required />
+            </div>
+
+            {# ── Password ── #}
+            <div class="form-group">
+                <label for="user_password">Password</label>
+                <input type="password" id="user_password" name="password"
+                    class="modal-input" placeholder="••••••••" required />
+            </div>
+
+            {# ── Role ── #}
+            <div class="form-group">
+                <label for="user_role">Role</label>
+                <select id="user_role" name="role" class="modal-input" onchange="handleRoleChange(this.value)">
+                    <option value="student"   {% if user_form_data.role == 'student'   %}selected{% endif %}>Student</option>
+                    <option value="teacher"   {% if user_form_data.role == 'teacher'   %}selected{% endif %}>Teacher</option>
+                    <option value="admin"     {% if user_form_data.role == 'admin'     %}selected{% endif %}>Admin</option>
+                    <option value="superuser" {% if user_form_data.role == 'superuser' %}selected{% endif %}>SuperUser</option>
+                </select>
+            </div>
+
+            {# ── Group (only shown for teacher / student) ── #}
+            <div class="form-group" id="groupField">
+                <label for="user_group">Group</label>
+                <select id="user_group" name="group" class="modal-input">
+                    <option value="">— None —</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}"
+                            {% if user_form_data.group == group.id|stringformat:"s" %}selected{% endif %}>
+                            {{ group }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="submit-btn">Create User</button>
+        </form>
+    </div>
+</div>
+
+{# ── Edit User Modal ── #}
+<div class="user-modal-overlay" id="editUserModal"
+     data-has-errors="{% if edit_errors %}true{% else %}false{% endif %}"
+     data-edit-user-id="{{ edit_form_data.user_id|default:'' }}"
+     data-edit-first-name="{{ edit_form_data.first_name|default:''|escapejs }}"
+     data-edit-last-name="{{ edit_form_data.last_name|default:''|escapejs }}"
+     data-edit-email="{{ edit_form_data.email|default:''|escapejs }}"
+     data-edit-role="{{ edit_form_data.role|default:'' }}"
+     data-edit-group="{{ edit_form_data.group|default:'' }}"
+     onclick="handleEditUserOverlayClick(event)">
+    <div class="user-modal">
+        <button class="user-modal-close" onclick="closeEditUserModal()">&#x2715;</button>
+        <h2>Edit User</h2>
+
+        {% for error in edit_errors %}
+            <div class="form-error">{{ error }}</div>
+        {% endfor %}
+
+        <form method="post" id="editUserForm" action="">
+            {% csrf_token %}
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit_first_name">First Name</label>
+                    <input type="text" id="edit_first_name" name="first_name" class="modal-input"
+                        value="{{ edit_form_data.first_name|default:'' }}" required />
+                </div>
+                <div class="form-group">
+                    <label for="edit_last_name">Last Name</label>
+                    <input type="text" id="edit_last_name" name="last_name" class="modal-input"
+                        value="{{ edit_form_data.last_name|default:'' }}" required />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="edit_email">Email Address</label>
+                <input type="email" id="edit_email" name="email" class="modal-input"
+                    value="{{ edit_form_data.email|default:'' }}" required />
+            </div>
+
+            <div class="form-group">
+                <label for="edit_password">
+                    Password
+                    <span style="font-weight:400; text-transform:none;">(leave blank to keep existing)</span>
+                </label>
+                <input type="password" id="edit_password" name="password"
+                    class="modal-input" placeholder="••••••••" />
+            </div>
+
+            {# ── Role (read-only in edit mode) ── #}
+            <div class="form-group">
+                <label>Role</label>
+                <input type="hidden" id="edit_role" name="role" />
+                <div id="edit_role_display" style="padding:10px 14px; border:1.5px solid #eee; border-radius:8px; font-size:14px; background:#f8f9fc; color:#555;">
+                    —
+                </div>
+            </div>
+
+            <div class="form-group" id="editGroupField">
+                <label for="edit_group">Group</label>
+                <select id="edit_group" name="group" class="modal-input">
+                    <option value="">— None —</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}">{{ group }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:4px;">
+                <button type="submit" class="submit-btn">Save Changes</button>
+                <button type="button" class="delete-btn" onclick="deleteUser()">Delete User</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# Hidden form for delete submission #}
+<form method="post" id="deleteUserForm" action="">
+    {% csrf_token %}
+</form>
+
+{# ============================================================ #}
+{#  CREATE GROUP MODAL                                            #}
+{# ============================================================ #}
+<div class="group-modal-overlay" id="adminGroupModal"
+     data-has-errors="{% if group_errors %}true{% else %}false{% endif %}"
+     onclick="handleAdminGroupOverlayClick(event)">
+    <div class="admin-group-modal">
+        <button class="admin-group-modal-close" onclick="closeAdminGroupModal()">&#x2715;</button>
+        <h2>Create Group</h2>
+
+        {% for error in group_errors %}
+            <div class="form-error">{{ error }}</div>
+        {% endfor %}
+
+        <form method="post" action="{% url 'users_and_permissions' %}">
+            {% csrf_token %}
+            <input type="hidden" name="create_group" value="1">
+
+            <div class="form-group">
+                <label for="admin_group_name">Group Name</label>
+                <input type="text" id="admin_group_name" name="group_name" class="modal-input"
+                    placeholder="e.g. All Students, 9th Graders..."
+                    value="{{ group_form_data.group_name|default:'' }}" required />
+            </div>
+
+            <div class="form-group">
+                <label for="admin_parent_group">
+                    Parent Group
+                    <span style="font-weight:400; text-transform:none;">(optional)</span>
+                </label>
+                <select id="admin_parent_group" name="parent_group" class="modal-input">
+                    <option value="">— None —</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}"
+                            {% if group_form_data.parent_group == group.id|stringformat:"s" %}selected{% endif %}>
+                            {{ group }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="submit-btn">Create Group</button>
+        </form>
+    </div>
+</div>
+
+{# ── Edit Group Modal ── #}
+<div class="group-modal-overlay" id="editGroupModal"
+     data-has-errors="{% if edit_group_errors %}true{% else %}false{% endif %}"
+     data-edit-group-id="{{ edit_group_form_data.group_id|default:'' }}"
+     data-edit-group-name="{{ edit_group_form_data.group_name|default:''|escapejs }}"
+     data-edit-parent-group="{{ edit_group_form_data.parent_group|default:'' }}"
+     onclick="handleEditGroupOverlayClick(event)">
+    <div class="admin-group-modal">
+        <button class="admin-group-modal-close" onclick="closeEditGroupModal()">&#x2715;</button>
+        <h2>Edit Group</h2>
+
+        {% for error in edit_group_errors %}
+            <div class="form-error">{{ error }}</div>
+        {% endfor %}
+
+        <form method="post" id="editGroupForm" action="">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="edit_group_name">Group Name</label>
+                <input type="text" id="edit_group_name" name="group_name" class="modal-input" required />
+            </div>
+
+            <div class="form-group">
+                <label for="edit_parent_group">
+                    Parent Group
+                    <span style="font-weight:400; text-transform:none;">(optional)</span>
+                </label>
+                <select id="edit_parent_group" name="parent_group" class="modal-input">
+                    <option value="">— None —</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}">{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:4px;">
+                <button type="submit" class="submit-btn">Save Changes</button>
+                <button type="button" class="delete-btn" onclick="deleteGroup()">Delete Group</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# Hidden form for group delete submission #}
+<form method="post" id="deleteGroupForm" action="">
+    {% csrf_token %}
+</form>
+
+{# ============================================================ #}
+{#  JAVASCRIPT                                                   #}
+{# ============================================================ #}
+<script>
+
+    // ── Create user modal ───────────────────────────────────────
+
+    function openUserModal() {
+        document.getElementById('userModal').classList.add('open');
+    }
+
+    function closeUserModal() {
+        document.getElementById('userModal').classList.remove('open');
+    }
+
+    function handleUserOverlayClick(e) {
+        if (e.target === document.getElementById('userModal')) closeUserModal();
+    }
+
+    // Show/hide group field based on selected role
+    function handleRoleChange(role) {
+        const groupField = document.getElementById('groupField');
+        groupField.style.display = (role === 'teacher' || role === 'student') ? 'flex' : 'none';
+    }
+
+    // Re-open create modal if there were validation errors on last submit
+    if (document.getElementById('userModal').dataset.hasErrors === 'true') {
+        openUserModal();
+    }
+
+    // Set initial group field visibility on page load
+    handleRoleChange(document.getElementById('user_role').value);
+
+
+    // ── Edit user modal ─────────────────────────────────────────
+
+    let currentEditUserId = null;
+
+    function openEditUserModal(userId, firstName, lastName, email, role, groupId) {
+        currentEditUserId = userId;
+
+        // Point the form action at the correct edit URL for this user
+        document.getElementById('editUserForm').action = `/users-and-permissions/edit-user/${userId}/`;
+
+        // Pre-fill all fields with the user's current values
+        document.getElementById('edit_first_name').value = firstName;
+        document.getElementById('edit_last_name').value  = lastName;
+        document.getElementById('edit_email').value      = email;
+        document.getElementById('edit_password').value   = '';
+        document.getElementById('edit_role').value       = role;
+        document.getElementById('edit_group').value      = groupId;
+
+        const roleLabels = { superuser: 'SuperUser', admin: 'Admin', teacher: 'Teacher', student: 'Student' };
+        document.getElementById('edit_role_display').textContent = roleLabels[role] || role;
+        handleEditRoleChange(role);
+
+        document.getElementById('editUserModal').classList.add('open');
+    }
+
+    function closeEditUserModal() {
+        document.getElementById('editUserModal').classList.remove('open');
+    }
+
+    function handleEditUserOverlayClick(e) {
+        if (e.target === document.getElementById('editUserModal')) closeEditUserModal();
+    }
+
+    // Show/hide group field based on selected role in edit modal
+    function handleEditRoleChange(role) {
+        const groupField = document.getElementById('editGroupField');
+        groupField.style.display = (role === 'teacher' || role === 'student') ? 'flex' : 'none';
+    }
+
+    // Re-open edit modal if there were validation errors on last submit
+    if (document.getElementById('editUserModal').dataset.hasErrors === 'true') {
+        const el = document.getElementById('editUserModal');
+        openEditUserModal(
+            el.dataset.editUserId,
+            el.dataset.editFirstName,
+            el.dataset.editLastName,
+            el.dataset.editEmail,
+            el.dataset.editRole,
+            el.dataset.editGroup
+        );
+    }
+
+
+    // ── Delete user ─────────────────────────────────────────────
+
+    function deleteUser() {
+        if (!confirm('Are you sure you want to delete this user? This cannot be undone.')) return;
+        const form = document.getElementById('deleteUserForm');
+        form.action = `/users-and-permissions/delete-user/${currentEditUserId}/`;
+        form.submit();
+    }
+
+
+    // ── Admin group modal ───────────────────────────────────────
+
+    function openAdminGroupModal() {
+        document.getElementById('adminGroupModal').classList.add('open');
+    }
+
+    function closeAdminGroupModal() {
+        document.getElementById('adminGroupModal').classList.remove('open');
+    }
+
+    function handleAdminGroupOverlayClick(e) {
+        if (e.target === document.getElementById('adminGroupModal')) closeAdminGroupModal();
+    }
+
+    // Re-open group modal if there were validation errors on last submit
+    if (document.getElementById('adminGroupModal').dataset.hasErrors === 'true') {
+        openAdminGroupModal();
+    }
+
+    // ── Edit group modal ────────────────────────────────────────
+
+    let currentEditGroupId = null;
+
+    function openEditGroupModal(groupId, groupName, parentId) {
+        currentEditGroupId = groupId;
+
+        document.getElementById('editGroupForm').action = `/users-and-permissions/edit-group/${groupId}/`;
+        document.getElementById('edit_group_name').value    = groupName;
+        document.getElementById('edit_parent_group').value  = parentId;
+
+        document.getElementById('editGroupModal').classList.add('open');
+    }
+
+    function closeEditGroupModal() {
+        document.getElementById('editGroupModal').classList.remove('open');
+    }
+
+    function handleEditGroupOverlayClick(e) {
+        if (e.target === document.getElementById('editGroupModal')) closeEditGroupModal();
+    }
+
+    function deleteGroup() {
+        if (!confirm('Are you sure you want to delete this group? This cannot be undone.')) return;
+        const form = document.getElementById('deleteGroupForm');
+        form.action = `/users-and-permissions/delete-group/${currentEditGroupId}/`;
+        form.submit();
+    }
+
+    // Re-open edit group modal if there were validation errors
+    if (document.getElementById('editGroupModal').dataset.hasErrors === 'true') {
+        const el = document.getElementById('editGroupModal');
+        openEditGroupModal(
+            el.dataset.editGroupId,
+            el.dataset.editGroupName,
+            el.dataset.editParentGroup
+        );
+    }
+
+    // ── Global keyboard handler ─────────────────────────────────
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            closeUserModal();
+            closeEditUserModal();
+            closeAdminGroupModal();
+            closeEditGroupModal();
+        }
+    });
+
+</script>
+
+{% endblock %}

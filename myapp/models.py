@@ -17,6 +17,13 @@ SUBJECTS = [
     ('other', 'Other'),
 ]
 
+ROLES = [
+    ('superuser', 'SuperUser'),
+    ('admin', 'Admin'),
+    ('teacher', 'Teacher'),
+    ('student', 'Student'),
+]
+
 class Group(models.Model):
     name = models.CharField(max_length=100)
     parent = models.ForeignKey(
@@ -62,3 +69,21 @@ class Class(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.start_time:%I:%M %p} - {self.end_time:%I:%M %p}, {self.minutes} mins)"
+    
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        'auth.User',
+        on_delete=models.CASCADE,
+        related_name='profile'
+    )
+    role = models.CharField(max_length=20, choices=ROLES, default='student')
+    group = models.ForeignKey(
+        Group,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='members'
+    )
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} ({self.get_role_display()})"

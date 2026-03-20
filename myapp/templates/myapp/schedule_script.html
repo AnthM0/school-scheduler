@@ -13,6 +13,16 @@
 
 // ── 1. GROUP MODAL ──────────────────────────────────────────────
 
+function handleOverlayClick(modalId, event) {
+    if (event.target === document.getElementById(modalId)) {
+        closeModalById(modalId);
+    }
+}
+
+function closeModalById(modalId) {
+    document.getElementById(modalId).classList.remove('open');
+}
+
 document.getElementById('groupSelect').addEventListener('change', function() {
     handleGroupSelect(this.value);
 });
@@ -221,7 +231,8 @@ function deleteClass() {
 // ── 6. INITIALISATION ───────────────────────────────────────────
 
 // Re-open group modal if it had validation errors on last submit
-if (document.getElementById('groupModal').dataset.hasErrors === 'true') {
+const groupModalEl = document.getElementById('groupModal');
+if (groupModalEl && groupModalEl.dataset.hasErrors === 'true') {
     openGroupModal();
 }
 

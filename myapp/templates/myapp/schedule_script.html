@@ -175,6 +175,49 @@ function renderClasses() {
     });
 }
 
+// ── Subject hours tracker ───────────────────────────────────────
+
+const HOURS_MULTIPLIER = 1; // adjust this to scale estimated hours
+
+function renderSubjectTracker() {
+    const subjects = ['math', 'history', 'science', 'english', 'language'];
+    const totals = { math: 0, history: 0, science: 0, english: 0, language: 0 };
+
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+    days.forEach(day => {
+        const classes = classesByDay[day] || [];
+        classes.forEach(cls => {
+            const subject = cls.subject || 'other';
+            if (subjects.includes(subject)) {
+                const startMins = timeToMinutes(cls.start);
+                const endMins   = timeToMinutes(cls.end);
+                totals[subject] += (endMins - startMins);
+            }
+        });
+    });
+
+    let grandTotalMinutes = 0;
+
+    subjects.forEach(subject => {
+        const minutes = totals[subject];
+        const hours = (minutes / 60) * HOURS_MULTIPLIER;
+        grandTotalMinutes += minutes;
+
+        const el = document.getElementById(`tracker-${subject}`);
+        if (el) el.textContent = formatHours(hours);
+    });
+
+    const totalHours = (grandTotalMinutes / 60) * HOURS_MULTIPLIER;
+    const totalEl = document.getElementById('tracker-total');
+    if (totalEl) totalEl.textContent = formatHours(totalHours);
+}
+
+function formatHours(hours) {
+    // Show one decimal place only when needed (e.g. "2.5h" but "3h" not "3.0h")
+    return (Math.round(hours * 10) / 10) + 'h';
+}
+
 
 // ── 4. TIME CONSTRAINT ENFORCEMENT ─────────────────────────────
 
@@ -250,6 +293,7 @@ updateTimeConstraints();
 
 // Render classes on load and re-render on window resize
 renderClasses();
+renderSubjectTracker();
 window.addEventListener('resize', renderClasses);
 
 // Close any open modal on Escape key

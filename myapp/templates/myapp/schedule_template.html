@@ -334,6 +334,58 @@
         color: #fff;
     }
 
+    /* ── Subject hours tracker ── */
+    .subject-tracker {
+        width: 220px;
+        background: #fff;
+        border: 1px solid #dde2ec;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+        position: sticky;
+        top: 80px;
+    }
+
+    .subject-tracker-header {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: #8892a4;
+        margin-bottom: 14px;
+    }
+
+    .subject-tracker-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 0;
+        font-size: 14px;
+        color: #1a1a2e;
+    }
+
+    .subject-tracker-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .subject-tracker-label {
+        flex: 1;
+    }
+
+    .subject-tracker-value {
+        font-weight: 600;
+        color: #555;
+    }
+
+    .subject-tracker-divider {
+        height: 1px;
+        background: #eaecf2;
+        margin: 8px 0;
+    }
+
 </style>
 
 {# ============================================================ #}
@@ -383,29 +435,69 @@
     </div>
 
     {# ── Schedule grid ── #}
-    <div class="schedule-grid" id="scheduleGrid">
+    <div style="display:flex; gap:24px; align-items:flex-start;">
 
-        {# Day column headers #}
-        <div class="header-spacer"></div>
-        <div class="day-header">Monday</div>
-        <div class="day-header">Tuesday</div>
-        <div class="day-header">Wednesday</div>
-        <div class="day-header">Thursday</div>
-        <div class="day-header">Friday</div>
+        <div class="schedule-grid" id="scheduleGrid" style="flex:1;">
 
-        {# Time slot rows — one row per 5-minute increment, label shown every 30 mins #}
-        {% for slot in time_slots %}
-            <div class="time-label {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half-hour{% endif %}">
-                {% if slot.show_label %}{{ slot.label }}{% endif %}
+            {# Day column headers #}
+            <div class="header-spacer"></div>
+            <div class="day-header">Monday</div>
+            <div class="day-header">Tuesday</div>
+            <div class="day-header">Wednesday</div>
+            <div class="day-header">Thursday</div>
+            <div class="day-header">Friday</div>
+
+            {# Time slot rows — one row per 5-minute increment, label shown every 30 mins #}
+            {% for slot in time_slots %}
+                <div class="time-label {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half-hour{% endif %}">
+                    {% if slot.show_label %}{{ slot.label }}{% endif %}
+                </div>
+                <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="monday"    data-time="{{ slot.value }}"></div>
+                <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="tuesday"   data-time="{{ slot.value }}"></div>
+                <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="wednesday" data-time="{{ slot.value }}"></div>
+                <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="thursday"  data-time="{{ slot.value }}"></div>
+                <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="friday"    data-time="{{ slot.value }}"></div>
+            {% endfor %}
+
+        </div>
+
+        {# ── Subject hours tracker ── #}
+        <div class="subject-tracker" id="subjectTracker">
+            <div class="subject-tracker-header">Estimated Weekly Hours</div>
+            <div class="subject-tracker-row" data-subject="math">
+                <span class="subject-tracker-dot" style="background:#4f8ef7;"></span>
+                <span class="subject-tracker-label">Math</span>
+                <span class="subject-tracker-value" id="tracker-math">0h</span>
             </div>
-            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="monday"    data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="tuesday"   data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="wednesday" data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="thursday"  data-time="{{ slot.value }}"></div>
-            <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="friday"    data-time="{{ slot.value }}"></div>
-        {% endfor %}
-
+            <div class="subject-tracker-row" data-subject="history">
+                <span class="subject-tracker-dot" style="background:#e8823a;"></span>
+                <span class="subject-tracker-label">History</span>
+                <span class="subject-tracker-value" id="tracker-history">0h</span>
+            </div>
+            <div class="subject-tracker-row" data-subject="science">
+                <span class="subject-tracker-dot" style="background:#3ab795;"></span>
+                <span class="subject-tracker-label">Science</span>
+                <span class="subject-tracker-value" id="tracker-science">0h</span>
+            </div>
+            <div class="subject-tracker-row" data-subject="english">
+                <span class="subject-tracker-dot" style="background:#9b5fe0;"></span>
+                <span class="subject-tracker-label">English</span>
+                <span class="subject-tracker-value" id="tracker-english">0h</span>
+            </div>
+            <div class="subject-tracker-row" data-subject="language">
+                <span class="subject-tracker-dot" style="background:#e05f7a;"></span>
+                <span class="subject-tracker-label">Language</span>
+                <span class="subject-tracker-value" id="tracker-language">0h</span>
+            </div>
+            <div class="subject-tracker-divider"></div>
+            <div class="subject-tracker-row">
+                <span class="subject-tracker-label" style="font-weight:700;">Total</span>
+                <span class="subject-tracker-value" id="tracker-total" style="font-weight:700;">0h</span>
+            </div>
+        </div>
     </div>
+</div>
+    
 
     {# Hidden form used by the delete class function in JS #}
     <form method="post" id="deleteClassForm" action="">

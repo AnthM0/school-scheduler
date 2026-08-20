@@ -14,4 +14,5 @@ urlpatterns = [
     path('users-and-groups/delete-user/<int:user_id>/', views.delete_user, name='delete_user'),
     path('users-and-groups/edit-group/<int:group_id>/', views.edit_group, name='edit_group'),
     path('users-and-groups/delete-group/<int:group_id>/', views.delete_group, name='delete_group'),
+    path('weekly-schedule/', views.weekly_schedule, name='weekly_schedule'),
 ]

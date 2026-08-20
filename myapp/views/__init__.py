@@ -4,5 +4,5 @@
 
 from .home_views import home
 from .auth_views import login_view, logout_view
-from .schedule_views import schedule_template, create_class, edit_class, delete_class
+from .schedule_views import schedule_template, create_class, edit_class, delete_class, weekly_schedule
 from .admin_views import users_and_groups, edit_user, delete_user, edit_group, delete_group

@@ -1,0 +1,528 @@
+{% extends 'myapp/base.html' %}
+
+{% block title %}RevSchool Internal - Weekly Schedule{% endblock %}
+
+{% block content %}
+
+{# ============================================================ #}
+{#  STYLES                                                       #}
+{# ============================================================ #}
+<style>
+
+    .schedule-wrapper {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding-bottom: 40px;
+    }
+
+    .schedule-title {
+        text-align: center;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #1a1a2e;
+        margin-bottom: 28px;
+        text-transform: uppercase;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .schedule-title span {
+        display: inline-block;
+        border-bottom: 3px solid #4f8ef7;
+        padding-bottom: 6px;
+    }
+
+    /* ── Group selector ── */
+    .group-selector-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .group-selector-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .group-select, .week-select {
+        padding: 9px 36px 9px 14px;
+        border: 1.5px solid #dde2ec;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #1a1a2e;
+        background: #fff;
+        cursor: pointer;
+        outline: none;
+        min-width: 220px;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='%23555'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        transition: border-color 0.2s;
+    }
+
+    .group-select:focus, .week-select:focus { border-color: #1a1a2e; }
+
+    /* ── Week selector bar ── */
+    .week-selector-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 28px;
+    }
+
+    .week-nav-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        border: 1.5px solid #dde2ec;
+        background: #fff;
+        color: #1a1a2e;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s, border-color 0.2s;
+        text-decoration: none;
+    }
+
+    .week-nav-btn:hover {
+        background: #f0f5ff;
+        border-color: #4f8ef7;
+    }
+
+    .week-nav-btn svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+    }
+
+    /* ── View from template toggle button ── */
+    .template-toggle-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1.5px solid #dde2ec;
+        background: #fff;
+        color: #555;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, border-color 0.2s, color 0.2s;
+        margin-right: 8px;
+    }
+
+    .template-toggle-btn svg {
+        width: 15px;
+        height: 15px;
+        fill: currentColor;
+    }
+
+    .template-toggle-btn:hover {
+        border-color: #4f8ef7;
+        color: #4f8ef7;
+    }
+
+    .template-toggle-btn.active {
+        background: #1a1a2e;
+        border-color: #1a1a2e;
+        color: #fff;
+    }
+
+    .class-block {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+    }
+
+    .class-block.template-preview {
+        opacity: 0.5;
+    }
+
+    /* ── Schedule grid ── */
+    .schedule-grid {
+        display: grid;
+        grid-template-columns: 64px repeat(5, 1fr);
+        border: 1px solid #dde2ec;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+        position: relative;
+    }
+
+    .header-spacer {
+        background: #1a1a2e;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .day-header {
+        background: #1a1a2e;
+        color: #fff;
+        text-align: center;
+        padding: 10px 8px;
+        border-left: 1px solid rgba(255,255,255,0.1);
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .day-header .day-name {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+    }
+
+    .day-header .day-date {
+        font-size: 11px;
+        color: rgba(255,255,255,0.6);
+        margin-top: 2px;
+    }
+
+    .time-label {
+        background: #f8f9fc;
+        border-bottom: 1px solid #eaecf2;
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        padding: 6px 8px 0 0;
+        font-size: 11px;
+        font-weight: 600;
+        color: #8892a4;
+        letter-spacing: 0.3px;
+        min-height: 8px;
+    }
+
+    .time-label.show-label {
+        min-height: 48px;
+        border-bottom: 1px solid #eaecf2;
+    }
+
+    .time-label.half-hour {
+        color: #bbc3d0;
+        font-weight: 400;
+        border-bottom: 1px dashed #eaecf2;
+    }
+
+    .schedule-cell {
+        border-left: 1px solid #eaecf2;
+        border-bottom: 1px solid transparent;
+        min-height: 8px;
+        background: #fff;
+        position: relative;
+    }
+
+    .schedule-cell.show-label {
+        min-height: 48px;
+        border-bottom: 1px solid #eaecf2;
+    }
+
+    .schedule-cell.half { border-bottom: 1px dashed #eaecf2; }
+
+    /* ── Class blocks ── */
+    .class-block {
+        position: absolute;
+        border-radius: 6px;
+        padding: 4px 8px;
+        overflow: hidden;
+        z-index: 10;
+        cursor: default;
+    }
+
+    .class-block-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .class-block-time {
+        font-size: 10px;
+        color: rgba(255,255,255,0.8);
+        margin-top: 2px;
+    }
+
+    .class-block.subject-math     { background: #4f8ef7; box-shadow: 0 2px 6px rgba(79,142,247,0.3); }
+    .class-block.subject-history  { background: #e8823a; box-shadow: 0 2px 6px rgba(232,130,58,0.3); }
+    .class-block.subject-science  { background: #3ab795; box-shadow: 0 2px 6px rgba(58,183,149,0.3); }
+    .class-block.subject-english  { background: #9b5fe0; box-shadow: 0 2px 6px rgba(155,95,224,0.3); }
+    .class-block.subject-language { background: #e05f7a; box-shadow: 0 2px 6px rgba(224,95,122,0.3); }
+    .class-block.subject-other    { background: #f0b429; box-shadow: 0 2px 6px rgba(240,180,41,0.3); }
+
+    /* ── Subject hours tracker (reused) ── */
+    .subject-tracker {
+        width: 220px;
+        background: #fff;
+        border: 1px solid #dde2ec;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+        position: sticky;
+        top: 80px;
+    }
+
+    .subject-tracker-header {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        color: #8892a4;
+        margin-bottom: 14px;
+    }
+
+    .subject-tracker-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 0;
+        font-size: 14px;
+        color: #1a1a2e;
+    }
+
+    .subject-tracker-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .subject-tracker-label { flex: 1; }
+    .subject-tracker-value { font-weight: 600; color: #555; }
+
+    .subject-tracker-divider {
+        height: 1px;
+        background: #eaecf2;
+        margin: 8px 0;
+    }
+
+</style>
+
+{# ============================================================ #}
+{#  PAGE CONTENT                                                 #}
+{# ============================================================ #}
+<div class="schedule-wrapper">
+
+    <h1 class="schedule-title"><span>Weekly Schedule</span></h1>
+
+    {# ── Group selector ── #}
+    <div class="group-selector-bar">
+        <span class="group-selector-label">Group</span>
+        <select class="group-select" id="groupSelect">
+            <option value="">— Select a group —</option>
+            {% for group in groups %}
+                <option value="{{ group.id }}"
+                    {% if selected_group_id == group.id|stringformat:"s" %}selected{% endif %}>
+                    {{ group }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    {# ── Week selector with prev/next arrows ── #}
+    <div class="week-selector-bar">
+        <button class="template-toggle-btn" id="templateToggleBtn" onclick="toggleTemplateView()">
+            <svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+            View from Template
+        </button>
+
+        <a class="week-nav-btn" href="?week={{ prev_week_str }}&group={{ selected_group_id }}" title="Previous week">
+            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </a>
+
+        <select class="week-select" id="weekSelect">
+            {% for week in week_options %}
+                <option value="{{ week.value }}" {% if week.value == current_week_str %}selected{% endif %}>
+                    {{ week.label }}{% if week.is_current %} (this week){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+
+        <a class="week-nav-btn" href="?week={{ next_week_str }}&group={{ selected_group_id }}" title="Next week">
+            <svg viewBox="0 0 24 24"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
+        </a>
+    </div>
+
+    {# ── Schedule grid + tracker ── #}
+    <div style="display:flex; gap:24px; align-items:flex-start;">
+
+        <div class="schedule-grid" id="scheduleGrid" style="flex:1;">
+
+            <div class="header-spacer"></div>
+            <div class="day-header">
+                <div class="day-name">Monday</div>
+                <div class="day-date">{{ week_dates.monday|date:"M d" }}</div>
+            </div>
+            <div class="day-header">
+                <div class="day-name">Tuesday</div>
+                <div class="day-date">{{ week_dates.tuesday|date:"M d" }}</div>
+            </div>
+            <div class="day-header">
+                <div class="day-name">Wednesday</div>
+                <div class="day-date">{{ week_dates.wednesday|date:"M d" }}</div>
+            </div>
+            <div class="day-header">
+                <div class="day-name">Thursday</div>
+                <div class="day-date">{{ week_dates.thursday|date:"M d" }}</div>
+            </div>
+            <div class="day-header">
+                <div class="day-name">Friday</div>
+                <div class="day-date">{{ week_dates.friday|date:"M d" }}</div>
+            </div>
+
+            {% for slot in time_slots %}
+                <div class="time-label {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half-hour{% endif %}">
+                    {% if slot.show_label %}{{ slot.label }}{% endif %}
+                </div>
+                <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="monday"    data-time="{{ slot.value }}"></div>
+                <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="tuesday"   data-time="{{ slot.value }}"></div>
+                <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="wednesday" data-time="{{ slot.value }}"></div>
+                <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="thursday"  data-time="{{ slot.value }}"></div>
+                <div class="schedule-cell {% if slot.show_label %}show-label{% endif %} {% if slot.is_half %}half{% endif %}" data-day="friday"    data-time="{{ slot.value }}"></div>
+            {% endfor %}
+
+        </div>
+
+        {# ── Subject hours tracker ── #}
+        <div class="subject-tracker" id="subjectTracker">
+            <div class="subject-tracker-header">Weekly Hours</div>
+            <div class="subject-tracker-row"><span class="subject-tracker-dot" style="background:#4f8ef7;"></span><span class="subject-tracker-label">Math</span><span class="subject-tracker-value" id="tracker-math">0h</span></div>
+            <div class="subject-tracker-row"><span class="subject-tracker-dot" style="background:#e8823a;"></span><span class="subject-tracker-label">History</span><span class="subject-tracker-value" id="tracker-history">0h</span></div>
+            <div class="subject-tracker-row"><span class="subject-tracker-dot" style="background:#3ab795;"></span><span class="subject-tracker-label">Science</span><span class="subject-tracker-value" id="tracker-science">0h</span></div>
+            <div class="subject-tracker-row"><span class="subject-tracker-dot" style="background:#9b5fe0;"></span><span class="subject-tracker-label">English</span><span class="subject-tracker-value" id="tracker-english">0h</span></div>
+            <div class="subject-tracker-row"><span class="subject-tracker-dot" style="background:#e05f7a;"></span><span class="subject-tracker-label">Language</span><span class="subject-tracker-value" id="tracker-language">0h</span></div>
+            <div class="subject-tracker-divider"></div>
+            <div class="subject-tracker-row">
+                <span class="subject-tracker-label" style="font-weight:700;">Total</span>
+                <span class="subject-tracker-value" id="tracker-total" style="font-weight:700;">0h</span>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{# ============================================================ #}
+{#  JAVASCRIPT                                                   #}
+{# ============================================================ #}
+<script>
+
+    // ── Group + week selector navigation ────────────────────────
+
+    document.getElementById('groupSelect').addEventListener('change', function() {
+        window.location.href = `?week={{ current_week_str }}&group=${this.value}`;
+    });
+
+    document.getElementById('weekSelect').addEventListener('change', function() {
+        window.location.href = `?week=${this.value}&group={{ selected_group_id }}`;
+    });
+
+    // ── Class rendering (read-only, no edit modal) ──────────────
+
+    const classesByDay = JSON.parse('{{ classes_json|escapejs }}');
+
+    function timeToMinutes(timeStr) {
+        const [h, m] = timeStr.split(':').map(Number);
+        return h * 60 + m;
+    }
+
+    const GRID_START  = 7 * 60 + 30;
+    const CELL_HEIGHT = 8;
+
+    function renderClasses() {
+        document.querySelectorAll('.class-block').forEach(b => b.remove());
+        const grid = document.getElementById('scheduleGrid');
+        if (!grid) return;
+
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+        days.forEach(day => {
+            const classes = classesByDay[day] || [];
+            classes.forEach(cls => {
+                const startMins    = timeToMinutes(cls.start);
+                const endMins      = timeToMinutes(cls.end);
+                const durationMins = endMins - startMins;
+
+                const topOffset = ((startMins - GRID_START) / 5) * CELL_HEIGHT;
+                const height    = (durationMins / 5) * CELL_HEIGHT;
+
+                const firstCell = grid.querySelector(`.schedule-cell[data-day="${day}"]`);
+                if (!firstCell) return;
+
+                const block = document.createElement('div');
+                const previewClass = templateViewActive ? ' template-preview' : '';
+                block.className = `class-block subject-${cls.subject || 'other'}${previewClass}`;
+                block.style.top    = (firstCell.offsetTop + topOffset) + 'px';
+                block.style.height = height + 'px';
+                block.style.left   = firstCell.offsetLeft + 2 + 'px';
+                block.style.width  = firstCell.offsetWidth - 4 + 'px';
+
+                block.innerHTML = `
+                    <div class="class-block-name">${cls.name}</div>
+                    <div class="class-block-time">${cls.start} – ${cls.end}${cls.group ? ' · ' + cls.group : ''}</div>
+                `;
+
+                grid.appendChild(block);
+            });
+        });
+    }
+
+    // ── Subject hours tracker ────────────────────────────────────
+
+    const HOURS_MULTIPLIER = 1;
+
+    function renderSubjectTracker() {
+        const subjects = ['math', 'history', 'science', 'english', 'language'];
+        const totals = { math: 0, history: 0, science: 0, english: 0, language: 0 };
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+
+        days.forEach(day => {
+            const classes = classesByDay[day] || [];
+            classes.forEach(cls => {
+                const subject = cls.subject || 'other';
+                if (subjects.includes(subject)) {
+                    totals[subject] += (timeToMinutes(cls.end) - timeToMinutes(cls.start));
+                }
+            });
+        });
+
+        let grandTotal = 0;
+        subjects.forEach(subject => {
+            const hours = (totals[subject] / 60) * HOURS_MULTIPLIER;
+            grandTotal += totals[subject];
+            const el = document.getElementById(`tracker-${subject}`);
+            if (el) el.textContent = formatHours(hours);
+        });
+
+        const totalEl = document.getElementById('tracker-total');
+        if (totalEl) totalEl.textContent = formatHours((grandTotal / 60) * HOURS_MULTIPLIER);
+    }
+
+    function formatHours(hours) {
+        return (Math.round(hours * 10) / 10) + 'h';
+    }
+
+    let templateViewActive = false;
+
+    function toggleTemplateView() {
+        templateViewActive = !templateViewActive;
+        const btn = document.getElementById('templateToggleBtn');
+        btn.classList.toggle('active', templateViewActive);
+        renderClasses();
+    }
+
+    renderClasses();
+    renderSubjectTracker();
+    window.addEventListener('resize', renderClasses);
+
+</script>
+
+{% endblock %}

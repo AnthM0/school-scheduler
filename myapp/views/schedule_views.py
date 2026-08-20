@@ -29,6 +29,11 @@ def build_time_slots():
 
     return slots
 
+def get_monday_of_week(date_obj):
+    """
+    Given any date, returns the Monday of that week.
+    """
+    return date_obj - timedelta(days=date_obj.weekday())
 
 def get_classes_for_group(group):
     """
@@ -136,6 +141,65 @@ def schedule_template(request):
         'classes_json':     json.dumps(classes_json),
     })
 
+def weekly_schedule(request):
+    """
+    Displays the schedule for a specific calendar week, with real dates
+    under each day header. Supports navigating between weeks via a
+    dropdown or prev/next arrow buttons.
+    """
+    slots  = build_time_slots()
+    groups = sorted(Group.objects.all(), key=lambda g: str(g).lower())
+
+    selected_group_id = request.GET.get('group', '')
+    selected_group     = Group.objects.filter(id=selected_group_id).first() if selected_group_id else None
+
+    # ── Determine which week to display ──
+    week_param = request.GET.get('week', '')
+    if week_param:
+        try:
+            requested_date = datetime.strptime(week_param, '%Y-%m-%d').date()
+        except ValueError:
+            requested_date = datetime.today().date()
+    else:
+        requested_date = datetime.today().date()
+
+    monday = get_monday_of_week(requested_date)
+
+    # Map each weekday to its actual date this week
+    day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+    week_dates = {day: monday + timedelta(days=i) for i, day in enumerate(day_names)}
+
+    # Previous/next week navigation targets
+    prev_week_str = (monday - timedelta(days=7)).strftime('%Y-%m-%d')
+    next_week_str = (monday + timedelta(days=7)).strftime('%Y-%m-%d')
+    current_week_str = monday.strftime('%Y-%m-%d')
+
+    # Build a dropdown list of selectable weeks: 12 weeks back to 12 weeks forward
+    week_options = []
+    for offset in range(-12, 13):
+        week_monday = monday + timedelta(weeks=offset)
+        week_friday = week_monday + timedelta(days=4)
+        week_options.append({
+            'value': week_monday.strftime('%Y-%m-%d'),
+            'label': f"{week_monday.strftime('%b %d')} – {week_friday.strftime('%b %d, %Y')}",
+            'is_current': offset == 0,
+        })
+
+    # Reuse the same class-fetching logic as the schedule template page
+    classes_json = get_classes_for_group(selected_group) if selected_group else {}
+
+    return render(request, 'myapp/weekly_schedule.html', {
+        'time_slots':        slots,
+        'groups':            groups,
+        'selected_group_id': selected_group_id,
+        'selected_group':    selected_group,
+        'classes_json':      json.dumps(classes_json),
+        'week_dates':        week_dates,
+        'week_options':      week_options,
+        'current_week_str':  current_week_str,
+        'prev_week_str':     prev_week_str,
+        'next_week_str':     next_week_str,
+    })
 
 def create_class(request):
     """
